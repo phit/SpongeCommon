@@ -177,7 +177,7 @@ public abstract class MixinEntity implements IMixinEntity {
     @Nullable private DamageSource originalLava;
     protected boolean isConstructing = true;
     @Nullable private Text displayName;
-    protected Cause destructCause;
+    @Nullable protected Cause destructCause;
     private BlockState currentCollidingBlock;
     private BlockPos lastCollidedBlockPos;
     private final boolean isVanilla = getClass().getName().startsWith("net.minecraft.");
@@ -805,7 +805,7 @@ public abstract class MixinEntity implements IMixinEntity {
     }
 
     @Override
-    public void setDestructCause(Cause destructCause) {
+    public void setDestructCause(@Nullable Cause destructCause) {
         this.destructCause = destructCause;
     }
 

@@ -127,9 +127,9 @@ public interface IMixinEntity extends org.spongepowered.api.entity.Entity {
 
     boolean isVanilla();
 
-    Cause getDestructCause();
+    @Nullable Cause getDestructCause();
 
-    void setDestructCause(Cause cause);
+    void setDestructCause(@Nullable Cause cause);
 
     SpawnCause getSpawnCause();
 
