@@ -36,6 +36,18 @@ import org.spongepowered.api.block.trait.IntegerTrait;
 import org.spongepowered.api.boss.BossBarColor;
 import org.spongepowered.api.boss.BossBarOverlay;
 import org.spongepowered.api.boss.ServerBossBar;
+import org.spongepowered.api.command.Command;
+import org.spongepowered.api.command.CommandResult;
+import org.spongepowered.api.command.format.CommandMessageFormat;
+import org.spongepowered.api.command.parameter.Parameter;
+import org.spongepowered.api.command.parameter.flag.Flags;
+import org.spongepowered.api.command.parameter.flag.UnknownFlagBehavior;
+import org.spongepowered.api.command.parameter.managed.standard.CatalogedValueParameter;
+import org.spongepowered.api.command.parameter.managed.standard.CatalogedValueParameterModifier;
+import org.spongepowered.api.command.parameter.managed.standard.VariableValueParameterModifiers;
+import org.spongepowered.api.command.parameter.managed.standard.VariableValueParameters;
+import org.spongepowered.api.command.parameter.token.InputTokenizer;
+import org.spongepowered.api.command.managed.ChildExceptionBehavior;
 import org.spongepowered.api.data.DataRegistration;
 import org.spongepowered.api.data.key.Key;
 import org.spongepowered.api.data.meta.PatternLayer;
@@ -140,6 +152,20 @@ import org.spongepowered.common.block.SpongeBlockSnapshotBuilder;
 import org.spongepowered.common.block.SpongeBlockStateBuilder;
 import org.spongepowered.common.block.SpongeTileEntityArchetypeBuilder;
 import org.spongepowered.common.boss.ServerBossBarBuilder;
+import org.spongepowered.common.command.parameter.SpongeParameterBuilder;
+import org.spongepowered.common.command.parameter.SpongeParameterFirstOfBuilder;
+import org.spongepowered.common.command.parameter.SpongeParameterSequenceBuilder;
+import org.spongepowered.common.command.parameter.flag.SpongeFlagsBuilder;
+import org.spongepowered.common.command.parameter.modifier.builder.SpongeDefaultValueModifierBuilder;
+import org.spongepowered.common.command.parameter.modifier.builder.SpongeRepeatedValueModifierBuilder;
+import org.spongepowered.common.command.parameter.modifier.builder.SpongeSelectorValueModifierBuilder;
+import org.spongepowered.common.command.parameter.value.builder.SpongeCatalogTypeValueParameterBuilder;
+import org.spongepowered.common.command.parameter.value.builder.SpongeDynamicChoicesValueParameterBuilder;
+import org.spongepowered.common.command.parameter.value.builder.SpongeEnumValueParameterBuilder;
+import org.spongepowered.common.command.parameter.value.builder.SpongeLiteralValueParameterBuilder;
+import org.spongepowered.common.command.parameter.value.builder.SpongeStaticChoicesValueParameterBuilder;
+import org.spongepowered.common.command.result.SpongeCommandResultBuilder;
+import org.spongepowered.common.command.managed.SpongeCommandBuilder;
 import org.spongepowered.common.data.SpongeDataRegistrationBuilder;
 import org.spongepowered.common.data.builder.data.meta.SpongePatternLayerBuilder;
 import org.spongepowered.common.effect.particle.SpongeParticleEffectBuilder;
@@ -172,6 +198,12 @@ import org.spongepowered.common.registry.type.*;
 import org.spongepowered.common.registry.type.block.*;
 import org.spongepowered.common.registry.type.boss.BossBarColorRegistryModule;
 import org.spongepowered.common.registry.type.boss.BossBarOverlayRegistryModule;
+import org.spongepowered.common.registry.type.command.CatalogedValueParameterModifiersRegistryModule;
+import org.spongepowered.common.registry.type.command.CatalogedValueParametersRegistryModule;
+import org.spongepowered.common.registry.type.command.ChildExceptionBehaviorRegistryModule;
+import org.spongepowered.common.registry.type.command.CommandMessageFormatRegistryModule;
+import org.spongepowered.common.registry.type.command.InputTokenizerRegistryModule;
+import org.spongepowered.common.registry.type.command.UnknownFlagBehaviorRegistryModule;
 import org.spongepowered.common.registry.type.data.DataFormatRegistryModule;
 import org.spongepowered.common.registry.type.data.DataTranslatorRegistryModule;
 import org.spongepowered.common.registry.type.data.HandTypeRegistryModule;
@@ -335,6 +367,20 @@ public final class CommonModuleRegistry {
             .registerBuilderSupplier(ShapelessCraftingRecipe.Builder.class, SpongeShapelessCraftingRecipeBuilder::new)
             .registerBuilderSupplier(SmeltingRecipe.Builder.class, SpongeSmeltingRecipeBuilder::new)
             .registerBuilderSupplier(EventContextKey.Builder.class, SpongeEventContextKeyBuilder::new)
+            .registerBuilderSupplier(Parameter.Builder.class, SpongeParameterBuilder::new)
+            .registerBuilderSupplier(Parameter.SequenceBuilder.class, SpongeParameterSequenceBuilder::new)
+            .registerBuilderSupplier(Parameter.FirstOfBuilder.class, SpongeParameterFirstOfBuilder::new)
+            .registerBuilderSupplier(Flags.Builder.class, SpongeFlagsBuilder::new)
+            .registerBuilderSupplier(CommandResult.Builder.class, SpongeCommandResultBuilder::new)
+            .registerBuilderSupplier(Command.Builder.class, SpongeCommandBuilder::new)
+            .registerBuilderSupplier(VariableValueParameterModifiers.SelectorValueModifierBuilder.class, SpongeSelectorValueModifierBuilder::new)
+            .registerBuilderSupplier(VariableValueParameterModifiers.RepeatedValueModifierBuilder.class, SpongeRepeatedValueModifierBuilder::new)
+            .registerBuilderSupplier(VariableValueParameterModifiers.DefaultValueModifierBuilder.class, SpongeDefaultValueModifierBuilder::new)
+            .registerBuilderSupplier(VariableValueParameters.DynamicChoicesBuilder.class, SpongeDynamicChoicesValueParameterBuilder::new)
+            .registerBuilderSupplier(VariableValueParameters.StaticChoicesBuilder.class, SpongeStaticChoicesValueParameterBuilder::new)
+            .registerBuilderSupplier(VariableValueParameters.LiteralBuilder.class, SpongeLiteralValueParameterBuilder::new)
+            .registerBuilderSupplier(VariableValueParameters.CatalogedTypeBuilder.class, SpongeCatalogTypeValueParameterBuilder::new)
+            .registerBuilderSupplier(VariableValueParameters.EnumBuilder.class, SpongeEnumValueParameterBuilder::new)
         ;
     }
 
@@ -355,8 +401,12 @@ public final class CommonModuleRegistry {
             .registerModule(BlockType.class, BlockTypeRegistryModule.getInstance())
             .registerModule(BrickType.class, new BrickTypeRegistryModule())
             .registerModule(Career.class, CareerRegistryModule.getInstance())
+            .registerModule(CatalogedValueParameterModifier.class, new CatalogedValueParameterModifiersRegistryModule())
+            .registerModule(CatalogedValueParameter.class, new CatalogedValueParametersRegistryModule())
             .registerModule(new ChatTypeRegistryModule())
+            .registerModule(ChildExceptionBehavior.class, new ChildExceptionBehaviorRegistryModule())
             .registerModule(CoalType.class, new CoalTypeRegistryModule())
+            .registerModule(CommandMessageFormat.class, new CommandMessageFormatRegistryModule())
             .registerModule(ComparatorType.class, new ComparatorTypeRegistryModule())
             .registerModule(CookedFish.class, new CookedFishRegistryModule())
             .registerModule(Criterion.class, new CriteriaRegistryModule())
@@ -384,6 +434,7 @@ public final class CommonModuleRegistry {
             .registerModule(GoalType.class, GoalTypeModule.getInstance())
             .registerModule(GoldenApple.class, new GoldenAppleRegistryModule())
             .registerModule(Hinge.class, new HingeRegistryModule())
+            .registerModule(InputTokenizer.class, new InputTokenizerRegistryModule())
             .registerModule(IntegerTrait.class, IntegerTraitRegistryModule.getInstance())
             .registerModule(ItemType.class, ItemTypeRegistryModule.getInstance())
             .registerModule(new LocaleRegistryModule())
@@ -429,6 +480,7 @@ public final class CommonModuleRegistry {
             .registerModule(Visibility.class, new VisibilityRegistryModule())
             .registerModule(Statistic.class, StatisticRegistryModule.getInstance())
             .registerModule(StatisticType.class, new StatisticTypeRegistryModule())
+            .registerModule(UnknownFlagBehavior.class, new UnknownFlagBehaviorRegistryModule())
             .registerModule(WallType.class, new WallTypeRegistryModule())
             .registerModule(Weather.class, new WeatherRegistryModule())
             .registerModule(WorldGeneratorModifier.class, WorldGeneratorModifierRegistryModule.getInstance())

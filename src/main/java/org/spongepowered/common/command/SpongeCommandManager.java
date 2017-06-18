@@ -25,7 +25,6 @@
 package org.spongepowered.common.command;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.spongepowered.api.command.CommandMessageFormatting.error;
 import static org.spongepowered.api.util.SpongeApiTranslationHelper.t;
 
 import com.google.common.collect.HashMultimap;
@@ -35,7 +34,7 @@ import com.google.common.collect.Multimap;
 import com.google.inject.Singleton;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.api.Sponge;
-import org.spongepowered.api.command.CommandCallable;
+import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandException;
 import org.spongepowered.api.command.CommandManager;
 import org.spongepowered.api.command.CommandMapping;
@@ -44,7 +43,7 @@ import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.InvocationCommandException;
 import org.spongepowered.api.command.dispatcher.Disambiguator;
-import org.spongepowered.api.command.dispatcher.SimpleDispatcher;
+import org.spongepowered.api.command.format.CommandMessageFormats;
 import org.spongepowered.api.event.CauseStackManager.StackFrame;
 import org.spongepowered.api.event.SpongeEventFactory;
 import org.spongepowered.api.event.command.SendCommandEvent;
@@ -72,7 +71,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
@@ -87,7 +85,7 @@ public class SpongeCommandManager implements CommandManager {
 
     private static final Pattern SPACE_PATTERN = Pattern.compile(" ", Pattern.LITERAL);
     private final Logger logger;
-    private final SimpleDispatcher dispatcher;
+    private final SpongeDispatcher dispatcher;
     private final Multimap<PluginContainer, CommandMapping> owners = HashMultimap.create();
     private final Map<CommandMapping, PluginContainer> reverseOwners = new ConcurrentHashMap<>();
     private final Object lock = new Object();
@@ -99,7 +97,7 @@ public class SpongeCommandManager implements CommandManager {
      */
     @Inject
     public SpongeCommandManager(Logger logger) {
-        this(logger, SimpleDispatcher.FIRST_DISAMBIGUATOR);
+        this(logger, SpongeDispatcher.FIRST_DISAMBIGUATOR);
     }
 
     /**
@@ -110,22 +108,16 @@ public class SpongeCommandManager implements CommandManager {
      */
     public SpongeCommandManager(Logger logger, Disambiguator disambiguator) {
         this.logger = logger;
-        this.dispatcher = new SimpleDispatcher(disambiguator);
+        this.dispatcher = new SpongeDispatcher(disambiguator);
     }
 
     @Override
-    public Optional<CommandMapping> register(Object plugin, CommandCallable callable, String... alias) {
-        return register(plugin, callable, Arrays.asList(alias));
+    public Optional<CommandMapping> register(Object plugin, Command command, String... alias) {
+        return register(plugin, command, Arrays.asList(alias));
     }
 
     @Override
-    public Optional<CommandMapping> register(Object plugin, CommandCallable callable, List<String> aliases) {
-        return register(plugin, callable, aliases, Function.identity());
-    }
-
-    @Override
-    public Optional<CommandMapping> register(Object plugin, CommandCallable callable, List<String> aliases,
-            Function<List<String>, List<String>> callback) {
+    public Optional<CommandMapping> register(Object plugin, Command command, List<String> aliases) {
         checkNotNull(plugin, "plugin");
 
         Optional<PluginContainer> containerOptional = Sponge.getGame().getPluginManager().fromInstance(plugin);
@@ -135,36 +127,45 @@ public class SpongeCommandManager implements CommandManager {
                             + "(in other words, is 'plugin' actually your plugin object?");
         }
 
-        PluginContainer container = containerOptional.get();
+        return register(containerOptional.get(), command, aliases);
+    }
 
+    @Override
+    public Optional<CommandMapping> register(PluginContainer pluginContainer, Command command, String... alias) {
+        return register(pluginContainer, command, Arrays.asList(alias));
+    }
+
+    @Override
+    public Optional<CommandMapping> register(PluginContainer pluginContainer, Command command, List<String> aliases) {
+        checkNotNull(pluginContainer, "pluginContainer");
         synchronized (this.lock) {
             // <namespace>:<alias> for all commands
             List<String> aliasesWithPrefix = new ArrayList<>(aliases.size() * 3);
             for (final String originalAlias : aliases) {
-                final String alias = this.fixAlias(container, originalAlias);
+                final String alias = this.fixAlias(pluginContainer, originalAlias);
                 if (aliasesWithPrefix.contains(alias)) {
-                    this.logger.debug("Plugin '{}' is attempting to register duplicate alias '{}'", container.getId(), alias);
+                    this.logger.debug("Plugin '{}' is attempting to register duplicate alias '{}'", pluginContainer.getId(), alias);
                     continue;
                 }
-                final Collection<CommandMapping> ownedCommands = this.owners.get(container);
+                final Collection<CommandMapping> ownedCommands = this.owners.get(pluginContainer);
                 for (CommandMapping mapping : this.dispatcher.getAll(alias)) {
                     if (ownedCommands.contains(mapping)) {
-                        boolean isWrapper = callable instanceof MinecraftCommandWrapper;
-                        if (!(isWrapper && ((MinecraftCommandWrapper) callable).suppressDuplicateAlias(alias))) {
+                        boolean isWrapper = command instanceof MinecraftCommandWrapper;
+                        if (!(isWrapper && ((MinecraftCommandWrapper) command).suppressDuplicateAlias(alias))) {
                             throw new IllegalArgumentException("A plugin may not register multiple commands for the same alias ('" + alias + "')!");
                         }
                     }
                 }
 
                 aliasesWithPrefix.add(alias);
-                aliasesWithPrefix.add(container.getId() + ':' + alias);
+                aliasesWithPrefix.add(pluginContainer.getId() + ':' + alias);
             }
 
-            Optional<CommandMapping> mapping = this.dispatcher.register(callable, aliasesWithPrefix, callback);
+            Optional<CommandMapping> mapping = this.dispatcher.register(command, aliasesWithPrefix);
 
             if (mapping.isPresent()) {
-                this.owners.put(container, mapping.get());
-                this.reverseOwners.put(mapping.get(), container);
+                this.owners.put(pluginContainer, mapping.get());
+                this.reverseOwners.put(mapping.get(), pluginContainer);
             }
 
             return mapping;
@@ -200,11 +201,7 @@ public class SpongeCommandManager implements CommandManager {
     public Optional<CommandMapping> removeMapping(CommandMapping mapping) {
         synchronized (this.lock) {
             Optional<CommandMapping> removed = this.dispatcher.removeMapping(mapping);
-
-            if (removed.isPresent()) {
-                forgetMapping(removed.get());
-            }
-
+            removed.ifPresent(this::forgetMapping);
             return removed;
         }
     }
@@ -290,6 +287,11 @@ public class SpongeCommandManager implements CommandManager {
     }
 
     @Override
+    public Optional<String> getPrimaryAlias(Command command) {
+        return this.reverseOwners.keySet().stream().filter(x -> x.getCommand() == command).findFirst().map(CommandMapping::getPrimaryAlias);
+    }
+
+    @Override
     public CommandResult process(CommandSource source, String commandLine) {
         final String[] argSplit = commandLine.split(" ", 2);
         Sponge.getCauseStackManager().pushCause(source);
@@ -327,18 +329,19 @@ public class SpongeCommandManager implements CommandManager {
             } catch (CommandPermissionException ex) {
                 Text text = ex.getText();
                 if (text != null) {
-                    source.sendMessage(error(text));
+                    source.sendMessage(CommandMessageFormats.ERROR.applyFormat(text));
                 }
             } catch (CommandException ex) {
                 Text text = ex.getText();
                 if (text != null) {
-                    source.sendMessage(error(text));
+                    source.sendMessage(CommandMessageFormats.ERROR.applyFormat(text));
                 }
 
                 if (ex.shouldIncludeUsage()) {
                     final Optional<CommandMapping> mapping = this.dispatcher.get(argSplit[0], source);
                     if (mapping.isPresent()) {
-                        source.sendMessage(error(t("Usage: /%s %s", argSplit[0], mapping.get().getCallable().getUsage(source))));
+                        source.sendMessage(CommandMessageFormats.ERROR.applyFormat(
+                                t("Usage: /%s %s", argSplit[0], mapping.get().getCommand().getUsage(source))));
                     }
                 }
             }
@@ -358,7 +361,7 @@ public class SpongeCommandManager implements CommandManager {
                         .replace("\r\n", "\n")
                         .replace("\r", "\n")))); // I mean I guess somebody could be running this on like OS 9?
             }
-            source.sendMessage(error(t("Error occurred while executing command: %s", excBuilder.build())));
+            source.sendMessage(CommandMessageFormats.ERROR.applyFormat(t("Error occurred while executing command: %s", excBuilder.build())));
             this.logger.error(TextSerializers.PLAIN.serialize(t("Error occurred while executing command '%s' for source %s: %s", commandLine, source.toString(), String
                     .valueOf(thr.getMessage()))), thr);
         }
@@ -385,10 +388,10 @@ public class SpongeCommandManager implements CommandManager {
             return ImmutableList.copyOf(event.getTabCompletions());
         } catch (Exception e) {
             if (e instanceof CommandException) {
-                src.sendMessage(error(t("Error getting suggestions: %s", ((CommandException) e).getText())));
+                src.sendMessage(CommandMessageFormats.ERROR.applyFormat(t("Error getting suggestions: %s", ((CommandException) e).getText())));
                 return Collections.emptyList();
             }
-            throw new RuntimeException(String.format("Error occured while tab completing '%s'", arguments), e);
+            throw new RuntimeException(String.format("Error occurred while tab completing '%s'", arguments), e);
         }
     }
 

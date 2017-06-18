@@ -25,8 +25,8 @@
 package org.spongepowered.test;
 
 import org.spongepowered.api.Sponge;
+import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandResult;
-import org.spongepowered.api.command.spec.CommandSpec;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.game.state.GameInitializationEvent;
 import org.spongepowered.api.event.item.inventory.ChangeInventoryEvent;
@@ -46,7 +46,7 @@ public class TransferEventTest {
     @Listener
     public void onInit(GameInitializationEvent event) {
         Sponge.getCommandManager().register(this,
-            CommandSpec.builder().executor((source, context) -> {
+            Command.builder().setExecutor((source, context) -> {
                 if (registered)
                 {
                     this.registered = false;
