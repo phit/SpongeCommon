@@ -34,15 +34,15 @@ import java.util.function.Function;
 
 public final class SpongeQueryOperationType<T> extends SpongeCatalogType implements QueryOperationType<T> {
 
-    private final Function<T, SpongeQueryOperation> newInstance;
+    private final Function<T, SpongeQueryOperation<T>> newInstance;
 
-    public SpongeQueryOperationType(String id, Function<T, SpongeQueryOperation> newInstance) {
+    public SpongeQueryOperationType(String id, Function<T, SpongeQueryOperation<T>> newInstance) {
         super(id);
         this.newInstance = newInstance;
     }
 
     @Override
-    public QueryOperation of(T arg) {
+    public QueryOperation<T> of(T arg) {
         checkNotNull(arg);
         return this.newInstance.apply(arg);
     }

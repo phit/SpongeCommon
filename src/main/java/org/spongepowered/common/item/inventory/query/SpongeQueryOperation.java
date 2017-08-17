@@ -25,10 +25,22 @@
 package org.spongepowered.common.item.inventory.query;
 
 import org.spongepowered.api.item.inventory.query.QueryOperation;
+import org.spongepowered.api.item.inventory.query.QueryOperationType;
 import org.spongepowered.common.item.inventory.lens.Fabric;
 import org.spongepowered.common.item.inventory.lens.Lens;
 
-public abstract class SpongeQueryOperation implements QueryOperation {
+public abstract class SpongeQueryOperation<T> implements QueryOperation<T> {
+
+    protected final QueryOperationType<T> type;
+
+    protected SpongeQueryOperation(QueryOperationType<T> type) {
+        this.type = type;
+    }
+
+    @Override
+    public final QueryOperationType<T> getType() {
+        return this.type;
+    }
 
     public abstract <TInventory, TStack> boolean matches(Lens<TInventory, TStack> lens, Lens<TInventory, TStack> parent,
             Fabric<TInventory> inventory);

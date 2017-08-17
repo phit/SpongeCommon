@@ -24,28 +24,17 @@
  */
 package org.spongepowered.common.item.inventory.query;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
-import net.minecraft.inventory.IInventory;
-import org.spongepowered.api.item.ItemType;
 import org.spongepowered.api.item.inventory.Inventory;
 import org.spongepowered.api.item.inventory.query.QueryOperation;
 import org.spongepowered.common.item.inventory.EmptyInventoryImpl;
 import org.spongepowered.common.item.inventory.adapter.InventoryAdapter;
-import org.spongepowered.common.item.inventory.lens.CompoundSlotProvider;
 import org.spongepowered.common.item.inventory.lens.Fabric;
 import org.spongepowered.common.item.inventory.lens.Lens;
 import org.spongepowered.common.item.inventory.lens.MutableLensSet;
-import org.spongepowered.common.item.inventory.lens.impl.CompoundLens;
-import org.spongepowered.common.item.inventory.lens.impl.MinecraftFabric;
 import org.spongepowered.common.item.inventory.lens.impl.collections.MutableLensSetImpl;
-import org.spongepowered.common.item.inventory.lens.impl.fabric.CompoundFabric;
 import org.spongepowered.common.item.inventory.lens.slots.SlotLens;
-import org.spongepowered.common.item.inventory.query.operation.SlotLensQueryOperation;
 import org.spongepowered.common.item.inventory.query.result.MinecraftResultAdapterProvider;
 import org.spongepowered.common.item.inventory.query.result.QueryResult;
 
@@ -67,9 +56,9 @@ public class Query<TInventory, TStack> {
 
     private final Lens<TInventory, TStack> lens;
 
-    private final QueryOperation[] queries;
+    private final QueryOperation<?>[] queries;
 
-    private Query(InventoryAdapter<TInventory, TStack> adapter, QueryOperation[] queries) {
+    private Query(InventoryAdapter<TInventory, TStack> adapter, QueryOperation<?>[] queries) {
         this.adapter = adapter;
         this.inventory = adapter.getInventory();
         this.lens = adapter.getRootLens();
@@ -129,7 +118,7 @@ public class Query<TInventory, TStack> {
     }
 
     private boolean matches(Lens<TInventory, TStack> lens, Lens<TInventory, TStack> parent, Fabric<TInventory> inventory) {
-        for (QueryOperation operation : this.queries) {
+        for (QueryOperation<?> operation : this.queries) {
             if (((SpongeQueryOperation) operation).matches(lens, parent, inventory)) {
                 return true;
             }
@@ -172,7 +161,7 @@ public class Query<TInventory, TStack> {
         return slots;
     }
 
-    public static <TInventory, TStack> Query<TInventory, TStack> compile(InventoryAdapter<TInventory, TStack> adapter, QueryOperation... queries) {
+    public static <TInventory, TStack> Query<TInventory, TStack> compile(InventoryAdapter<TInventory, TStack> adapter, QueryOperation<?>... queries) {
         return new Query<>(adapter, queries);
     }
 

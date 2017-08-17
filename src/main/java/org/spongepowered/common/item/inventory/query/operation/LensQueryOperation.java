@@ -27,12 +27,14 @@ package org.spongepowered.common.item.inventory.query.operation;
 import org.spongepowered.common.item.inventory.lens.Fabric;
 import org.spongepowered.common.item.inventory.lens.Lens;
 import org.spongepowered.common.item.inventory.query.SpongeQueryOperation;
+import org.spongepowered.common.item.inventory.query.SpongeQueryOperationTypes;
 
-public final class LensQueryOperation extends SpongeQueryOperation {
+public final class LensQueryOperation extends SpongeQueryOperation<Lens<?, ?>> {
 
     private final Lens<?, ?> lens;
 
     public LensQueryOperation(Lens<?, ?> lens) {
+        super(SpongeQueryOperationTypes.LENS);
         this.lens = lens;
     }
 

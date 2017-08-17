@@ -30,12 +30,14 @@ import org.spongepowered.common.item.inventory.adapter.impl.slots.SlotAdapter;
 import org.spongepowered.common.item.inventory.lens.Fabric;
 import org.spongepowered.common.item.inventory.lens.Lens;
 import org.spongepowered.common.item.inventory.query.SpongeQueryOperation;
+import org.spongepowered.common.item.inventory.query.SpongeQueryOperationTypes;
 
-public final class SlotLensQueryOperation extends SpongeQueryOperation {
+public final class SlotLensQueryOperation extends SpongeQueryOperation<ImmutableSet<Inventory>> {
 
-    private ImmutableSet<Inventory> inventories;
+    private final ImmutableSet<Inventory> inventories;
 
     public SlotLensQueryOperation(ImmutableSet<Inventory> inventories) {
+        super(SpongeQueryOperationTypes.SLOT_LENS);
         this.inventories = inventories;
     }
 

@@ -189,7 +189,7 @@ public class EmptyInventoryImpl implements EmptyInventory, Observer<InventoryEve
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T extends Inventory> T query(QueryOperation... operations) {
+    public <T extends Inventory> T query(QueryOperation<?>... operations) {
         return (T) this;
     }
 

@@ -24,6 +24,7 @@
  */
 package org.spongepowered.common.item.inventory.query.operation;
 
+import org.spongepowered.api.item.inventory.query.QueryOperationTypes;
 import org.spongepowered.api.text.translation.Translation;
 import org.spongepowered.common.item.inventory.lens.Fabric;
 import org.spongepowered.common.item.inventory.lens.Lens;
@@ -31,11 +32,12 @@ import org.spongepowered.common.item.inventory.query.SpongeQueryOperation;
 
 import java.util.Objects;
 
-public final class InventoryTranslationQueryOperation extends SpongeQueryOperation {
+public final class InventoryTranslationQueryOperation extends SpongeQueryOperation<Translation> {
 
     private final Translation translation;
 
     public InventoryTranslationQueryOperation(Translation translation) {
+        super(QueryOperationTypes.INVENTORY_TRANSLATION);
         this.translation = translation;
     }
 

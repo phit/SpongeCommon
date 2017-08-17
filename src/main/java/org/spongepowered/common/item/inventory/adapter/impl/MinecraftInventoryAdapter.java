@@ -189,7 +189,7 @@ public interface MinecraftInventoryAdapter extends InventoryAdapter<IInventory, 
 
     @SuppressWarnings("unchecked")
     @Override
-    default <T extends Inventory> T query(QueryOperation... queries) {
+    default <T extends Inventory> T query(QueryOperation<?>... queries) {
         return (T) Query.compile(this, queries).execute();
     }
 

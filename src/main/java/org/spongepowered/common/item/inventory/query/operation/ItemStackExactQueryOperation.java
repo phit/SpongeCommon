@@ -25,11 +25,12 @@
 package org.spongepowered.common.item.inventory.query.operation;
 
 import org.spongepowered.api.item.inventory.ItemStack;
+import org.spongepowered.api.item.inventory.query.QueryOperationTypes;
 
 public final class ItemStackExactQueryOperation extends ItemStackQueryOperation<ItemStack> {
 
     public ItemStackExactQueryOperation(ItemStack itemStack) {
-        super(itemStack.copy());
+        super(QueryOperationTypes.ITEM_STACK_EXACT, itemStack.copy());
     }
 
     @Override
