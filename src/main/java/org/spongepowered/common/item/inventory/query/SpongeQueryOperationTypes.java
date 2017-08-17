@@ -37,4 +37,5 @@ public final class SpongeQueryOperationTypes {
 
     public static final QueryOperationType<ImmutableSet<Inventory>> SLOT_LENS = new SpongeQueryOperationType<>("slot_lens",
             SlotLensQueryOperation::new);
+
 }

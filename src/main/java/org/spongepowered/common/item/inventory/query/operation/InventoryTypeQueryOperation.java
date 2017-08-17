@@ -43,4 +43,5 @@ public final class InventoryTypeQueryOperation extends SpongeQueryOperation<Clas
     public <TInventory, TStack> boolean matches(Lens<TInventory, TStack> lens, Lens<TInventory, TStack> parent, Fabric<TInventory> inventory) {
         return this.targetType.isAssignableFrom(lens.getAdapterType());
     }
+
 }

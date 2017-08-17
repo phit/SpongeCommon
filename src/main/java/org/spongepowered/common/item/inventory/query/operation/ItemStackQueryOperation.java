@@ -56,4 +56,5 @@ public abstract class ItemStackQueryOperation<T> extends SpongeQueryOperation<T>
     }
 
     protected abstract boolean matches(ItemStack itemStack, T arg);
+
 }

@@ -39,4 +39,5 @@ public final class ItemStackCustomOperation extends ItemStackQueryOperation<Pred
     protected boolean matches(ItemStack itemStack, Predicate<ItemStack> arg) {
         return arg.test(itemStack);
     }
+
 }

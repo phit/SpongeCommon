@@ -38,4 +38,5 @@ public final class ItemStackIgnoreQuantityOperation extends ItemStackQueryOperat
     protected boolean matches(ItemStack itemStack, ItemStack arg) {
         return ItemStackUtil.compareIgnoreQuantity(itemStack, arg);
     }
+
 }

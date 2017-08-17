@@ -52,4 +52,5 @@ public final class SlotLensQueryOperation extends SpongeQueryOperation<Immutable
         }
         return false;
     }
+
 }

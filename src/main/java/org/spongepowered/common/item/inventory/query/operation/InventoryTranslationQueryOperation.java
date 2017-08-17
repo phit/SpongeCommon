@@ -45,4 +45,5 @@ public final class InventoryTranslationQueryOperation extends SpongeQueryOperati
     public <TInventory, TStack> boolean matches(Lens<TInventory, TStack> lens, Lens<TInventory, TStack> parent, Fabric<TInventory> inventory) {
         return Objects.equals(lens.getName(inventory), translation);
     }
+
 }

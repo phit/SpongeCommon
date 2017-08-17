@@ -42,4 +42,5 @@ public final class LensQueryOperation extends SpongeQueryOperation<Lens<?, ?>> {
     public <TInventory, TStack> boolean matches(Lens<TInventory, TStack> lens, Lens<TInventory, TStack> parent, Fabric<TInventory> inventory) {
         return this.lens.equals(lens);
     }
+
 }

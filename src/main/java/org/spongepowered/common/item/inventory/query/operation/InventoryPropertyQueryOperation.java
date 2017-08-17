@@ -51,4 +51,5 @@ public final class InventoryPropertyQueryOperation extends SpongeQueryOperation<
         }
         return false;
     }
+
 }

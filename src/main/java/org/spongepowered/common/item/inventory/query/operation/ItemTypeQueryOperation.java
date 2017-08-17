@@ -36,6 +36,7 @@ public final class ItemTypeQueryOperation extends ItemStackQueryOperation<ItemTy
 
     @Override
     protected boolean matches(ItemStack itemStack, ItemType arg) {
-        return itemStack.getItem().equals(arg);
+        return itemStack.getType().equals(arg);
     }
+
 }

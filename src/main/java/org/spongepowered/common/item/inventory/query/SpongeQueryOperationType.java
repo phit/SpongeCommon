@@ -46,4 +46,5 @@ public final class SpongeQueryOperationType<T> extends SpongeCatalogType impleme
         checkNotNull(arg);
         return this.newInstance.apply(arg);
     }
+
 }

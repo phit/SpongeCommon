@@ -37,4 +37,5 @@ public final class ItemStackExactQueryOperation extends ItemStackQueryOperation<
     protected boolean matches(ItemStack itemStack, ItemStack arg) {
         return itemStack.equalTo(arg);
     }
+
 }
