@@ -22,11 +22,4 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.event.tracking;
-
-public class DefaultPhaseContext extends PhaseContext<DefaultPhaseContext> {
-
-    protected DefaultPhaseContext(IPhaseState<? extends DefaultPhaseContext> phaseState) {
-        super(phaseState);
-    }
-}
+@org.spongepowered.api.util.annotation.NonnullByDefault package org.spongepowered.common.event.tracking.capture;

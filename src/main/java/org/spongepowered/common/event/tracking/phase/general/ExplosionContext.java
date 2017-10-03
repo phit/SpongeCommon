@@ -25,17 +25,22 @@
 package org.spongepowered.common.event.tracking.phase.general;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.Explosion;
 import net.minecraft.world.WorldServer;
 import org.spongepowered.asm.util.PrettyPrinter;
 import org.spongepowered.common.event.tracking.PhaseTracker;
 import org.spongepowered.common.event.tracking.PhaseData;
+import org.spongepowered.common.event.tracking.TrackingUtil;
+import org.spongepowered.common.event.tracking.capture.CaptureBlockPos;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 public final class ExplosionContext extends GeneralPhaseContext<ExplosionContext> {
 
     private Explosion explosion;
+    private CaptureBlockPos captureBlockPos = new CaptureBlockPos();
 
     public ExplosionContext() {
         super(GeneralPhase.State.EXPLOSION);
@@ -69,9 +74,22 @@ public final class ExplosionContext extends GeneralPhaseContext<ExplosionContext
         return (org.spongepowered.api.world.explosion.Explosion) this.explosion;
     }
 
+    public CaptureBlockPos getCaptureBlockPos() throws IllegalStateException {
+        if (this.captureBlockPos == null) {
+            throw TrackingUtil.throwWithContext("Intended to capture a block position!", this).get();
+        }
+        return this.captureBlockPos;
+    }
+
+    public Optional<BlockPos> getBlockPosition() {
+        return getCaptureBlockPos()
+                .getPos();
+    }
+
     @Override
     public PrettyPrinter printCustom(PrettyPrinter printer) {
         return super.printCustom(printer)
-            .add("    - %s: %s", "Explosion", this.explosion);
+                .add("    - %s: %s", "CapturedBlockPosition", this.captureBlockPos)
+                .add("    - %s: %s", "Explosion", this.explosion);
     }
 }
