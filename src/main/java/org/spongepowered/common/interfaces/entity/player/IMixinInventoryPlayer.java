@@ -24,11 +24,12 @@
  */
 package org.spongepowered.common.interfaces.entity.player;
 
+import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
 import org.spongepowered.common.item.inventory.adapter.impl.MinecraftInventoryAdapter;
 
-public interface IMixinInventoryPlayer extends MinecraftInventoryAdapter {
+public interface IMixinInventoryPlayer extends MinecraftInventoryAdapter<IInventory> {
 
     int getHeldItemIndex(EnumHand hand);
     
@@ -39,7 +40,7 @@ public interface IMixinInventoryPlayer extends MinecraftInventoryAdapter {
      * @param notify True to send an update packet to the client if this is a
      *      server
      */
-    public abstract void setSelectedItem(int itemIndex, boolean notify);
+    void setSelectedItem(int itemIndex, boolean notify);
 
     /**
      * Gets the first available slot id for itemstack.

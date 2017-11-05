@@ -187,7 +187,7 @@ public class SpongeCommonEventFactory {
 
             ((SpongeItemStackSnapshot) targetSnapshot).setCreator(creator);
             SlotTransaction slotTransaction =
-                    new SlotTransaction(new SlotAdapter(slot), sourceSnapshot, targetSnapshot);
+                    new SlotTransaction(((org.spongepowered.api.item.inventory.Slot) slot), sourceSnapshot, targetSnapshot);
             ImmutableList<SlotTransaction> transactions =
                     new ImmutableList.Builder<SlotTransaction>().add(slotTransaction).build();
             ChangeInventoryEvent.Pickup event = SpongeEventFactory.createChangeInventoryEventPickup(Sponge.getCauseStackManager().getCurrentCause(),
@@ -753,7 +753,7 @@ public class SpongeCommonEventFactory {
                 ItemStackSnapshot clickedItem = slot.getStack() == null ? ItemStackSnapshot.NONE
                         : ((org.spongepowered.api.item.inventory.ItemStack) slot.getStack()).createSnapshot();
                 SlotTransaction slotTransaction =
-                        new SlotTransaction(new SlotAdapter(slot), clickedItem, ItemStackSnapshot.NONE);
+                        new SlotTransaction(((org.spongepowered.api.item.inventory.Slot) slot), clickedItem, ItemStackSnapshot.NONE);
                 ((IMixinContainer) player.openContainer).getCapturedTransactions().add(slotTransaction);
             }
         }
