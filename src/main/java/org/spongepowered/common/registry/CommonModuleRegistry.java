@@ -406,7 +406,6 @@ public final class CommonModuleRegistry {
             .registerModule(new ChatTypeRegistryModule())
             .registerModule(ChildExceptionBehavior.class, new ChildExceptionBehaviorRegistryModule())
             .registerModule(CoalType.class, new CoalTypeRegistryModule())
-            .registerModule(CommandMessageFormat.class, new CommandMessageFormatRegistryModule())
             .registerModule(ComparatorType.class, new ComparatorTypeRegistryModule())
             .registerModule(CookedFish.class, new CookedFishRegistryModule())
             .registerModule(Criterion.class, new CriteriaRegistryModule())
@@ -503,6 +502,9 @@ public final class CommonModuleRegistry {
             .registerModule(CraftingRecipe.class, SpongeCraftingRecipeRegistry.getInstance())
             .registerModule(EventContextKey.class, EventContextKeysModule.getInstance())
             .registerModule(RecordType.class, RecordTypeRegistryModule.getInstance())
+
+            // Must be registered after Text related classes.
+            .registerModule(CommandMessageFormat.class, new CommandMessageFormatRegistryModule())
 
             // Miscellaneous Registries
             .registerModule(DungeonMobRegistryModule.getInstance())

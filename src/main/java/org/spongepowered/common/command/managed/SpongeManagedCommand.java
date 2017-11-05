@@ -43,7 +43,6 @@ import org.spongepowered.api.command.CommandMessageFormatting;
 import org.spongepowered.api.command.CommandPermissionException;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.dispatcher.Dispatcher;
-import org.spongepowered.api.command.format.CommandMessageFormat;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.api.command.parameter.token.InputTokenizer;
@@ -52,7 +51,6 @@ import org.spongepowered.api.command.managed.CommandExecutor;
 import org.spongepowered.api.command.source.ConsoleSource;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.format.TextColors;
-import org.spongepowered.api.util.Tuple;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 import org.spongepowered.api.command.parameter.Parameter;
@@ -150,8 +148,8 @@ public class SpongeManagedCommand implements Command, Dispatcher {
 
         // Step two, children. If we have any, we parse them now.
         if (!this.mappings.isEmpty() && args.hasNext()) {
-            CommandArgs.Snapshot argsState = args.getState();
-            CommandContext.Snapshot contextState = context.getState();
+            CommandArgs.State argsState = args.getState();
+            CommandContext.State contextState = context.getState();
             String subCommand = args.next().toLowerCase(Locale.ENGLISH);
             Optional<? extends CommandMapping> optionalChild = get(subCommand.toLowerCase(Locale.ENGLISH));
             if (optionalChild.isPresent()) {
@@ -167,8 +165,8 @@ public class SpongeManagedCommand implements Command, Dispatcher {
                     }
                 } catch (CommandException ex) {
                     // This might still rethrow, depends on the selected behavior
-                    CommandException eex = this.childExceptionBehavior.onChildCommandError(ex).orElse(null);
-                    if (eex instanceof ChildCommandException) {
+                    CommandException eex = this.childExceptionBehavior.onChildCommandError(ex);
+                    if (eex == null || eex instanceof ChildCommandException) {
                         childException = (ChildCommandException) eex;
                     } else {
                         childException = new ChildCommandException(subCommand, eex, null);
@@ -253,7 +251,7 @@ public class SpongeManagedCommand implements Command, Dispatcher {
             builder.append(paramUsage);
         }
 
-        subcommandUsageText(source).ifPresent(x -> builder.append(Text.NEW_LINE).append(t("Subcommands: ")).append(x));
+        subcommandUsageText(source).ifPresent(x -> builder.append(Text.NEW_LINE).append(x));
         return builder.build();
     }
 

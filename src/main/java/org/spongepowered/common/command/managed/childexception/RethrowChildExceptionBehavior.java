@@ -29,10 +29,13 @@ import org.spongepowered.api.command.managed.ChildExceptionBehavior;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 public class RethrowChildExceptionBehavior implements ChildExceptionBehavior {
 
     @Override
-    public Optional<CommandException> onChildCommandError(CommandException exception) throws CommandException {
+    @Nullable
+    public CommandException onChildCommandError(CommandException exception) throws CommandException {
         throw exception;
     }
 

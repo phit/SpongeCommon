@@ -130,15 +130,15 @@ public class SpongeCommandArgs implements CommandArgs {
     }
 
     @Override
-    public Snapshot getState() {
-        return new State(this.iterator.previousIndex(), this.internalIdentifier);
+    public State getState() {
+        return new InternalState(this.iterator.previousIndex(), this.internalIdentifier);
     }
 
     @Override
-    public void setState(Snapshot state) {
-        Preconditions.checkArgument(state instanceof State, "This is not a state obtained from getState");
+    public void setState(State state) {
+        Preconditions.checkArgument(state instanceof InternalState, "This is not a state obtained from getState");
 
-        State toRestore = (State) state;
+        InternalState toRestore = (InternalState) state;
         Preconditions.checkArgument(toRestore.internalIdentifier.equals(this.internalIdentifier), "This is not a state from this object");
 
         this.iterator = this.args.listIterator(toRestore.index + 1);
@@ -164,11 +164,11 @@ public class SpongeCommandArgs implements CommandArgs {
         return "";
     }
 
-    static class State implements Snapshot {
+    static class InternalState implements State {
         private final int index;
         private final UUID internalIdentifier;
 
-        State(int index, UUID internalIdentifier) {
+        InternalState(int index, UUID internalIdentifier) {
             this.index = index;
             this.internalIdentifier = internalIdentifier;
         }

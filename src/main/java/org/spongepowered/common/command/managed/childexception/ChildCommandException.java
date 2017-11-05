@@ -68,7 +68,8 @@ public class ChildCommandException extends CommandException {
         return builder.append(Text.NEW_LINE)
                 .append(LINE)
                 .append(Text.NEW_LINE)
-                .append(Text.of(TextColors.RED, t("Exception from "), TextColors.YELLOW, this.command))
+                .append(Text.of(TextColors.RED, t("Exception from "), TextColors.YELLOW, "/", getCommand()))
+                .append(Text.NEW_LINE)
                 .append(this.primary.getText())
                 .build();
     }

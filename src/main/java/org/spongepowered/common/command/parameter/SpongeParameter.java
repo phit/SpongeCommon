@@ -24,6 +24,7 @@
  */
 package org.spongepowered.common.command.parameter;
 
+import org.spongepowered.api.command.CommandMessageFormatting;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.token.CommandArgs;
@@ -69,7 +70,10 @@ class SpongeParameter implements Parameter {
 
     @Override
     public Text getUsage(CommandSource source) {
-        Text usage = this.valueParameter.getUsage(this.key, source);
+        Text usage = Text.of(
+                CommandMessageFormatting.LT_TEXT,
+                this.valueParameter.getUsage(this.key, source),
+                CommandMessageFormatting.GT_TEXT);
         for (ValueParameterModifier modifier : this.modifiers) {
             usage = modifier.getUsage(this.key, source, usage);
         }

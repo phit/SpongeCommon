@@ -54,9 +54,9 @@ public class RawJoinedStringValueParameter implements CatalogedValueParameter {
     }
 
     @Override
-    public Optional<Object> getValue(CommandSource source, CommandArgs args, CommandContext context)
+    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context)
             throws ArgumentParseException {
-        args.next();
+        // args.next();
         String ret = args.getRaw().substring(args.getCurrentRawPosition());
         while (args.hasNext()) { // Consume remaining args
             args.next();

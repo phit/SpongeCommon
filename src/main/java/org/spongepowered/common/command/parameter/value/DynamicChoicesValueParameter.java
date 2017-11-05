@@ -63,7 +63,7 @@ public class DynamicChoicesValueParameter implements ValueParameter {
     }
 
     @Override
-    public Optional<Object> getValue(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
         final String nextArg = args.next();
         return Optional.ofNullable(getValue(nextArg, args));
     }

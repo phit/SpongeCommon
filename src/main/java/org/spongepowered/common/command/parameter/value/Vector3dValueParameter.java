@@ -60,7 +60,7 @@ public class Vector3dValueParameter implements CatalogedValueParameter {
     }
 
     @Override
-    public Optional<Object> getValue(CommandSource source, CommandArgs args, CommandContext context)
+    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context)
             throws ArgumentParseException {
         String xStr;
         String yStr;

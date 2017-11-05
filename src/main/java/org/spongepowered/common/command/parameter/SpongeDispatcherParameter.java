@@ -71,8 +71,8 @@ public class SpongeDispatcherParameter extends SpongeDispatcher implements Param
         CommandMapping mapping = get(command).orElseThrow(() -> args.createError(t("The subcommand %s does not exist", command)));
 
         Command callable = mapping.getCommand();
-        CommandArgs.Snapshot argsState = args.getState();
-        CommandContext.Snapshot contextState = context.getState();
+        CommandArgs.State argsState = args.getState();
+        CommandContext.State contextState = context.getState();
         try {
             context.putEntry(this.argKey, args.rawArgsFromCurrentPosition());
             if (callable instanceof SpongeManagedCommand) {

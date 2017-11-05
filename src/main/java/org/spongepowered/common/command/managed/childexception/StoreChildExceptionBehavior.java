@@ -29,11 +29,14 @@ import org.spongepowered.api.command.managed.ChildExceptionBehavior;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 public class StoreChildExceptionBehavior implements ChildExceptionBehavior {
 
     @Override
-    public Optional<CommandException> onChildCommandError(CommandException exception) throws CommandException {
-        return Optional.of(exception);
+    @Nullable
+    public CommandException onChildCommandError(CommandException exception) throws CommandException {
+        return exception;
     }
 
     @Override

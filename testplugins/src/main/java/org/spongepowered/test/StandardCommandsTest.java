@@ -33,9 +33,13 @@ import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.command.managed.ChildExceptionBehaviors;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.command.CommandExecutionEvent;
 import org.spongepowered.api.event.game.state.GameInitializationEvent;
 import org.spongepowered.api.plugin.Plugin;
+import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.text.Text;
+
+import javax.inject.Inject;
 
 /**
  * This adds sample commands that will generally print messages to the executor
@@ -44,6 +48,9 @@ import org.spongepowered.api.text.Text;
  */
 @Plugin(id = "standardcommands", name = "StandardCommands", description = "A plugin to test the function of the Command.Builder")
 public class StandardCommandsTest {
+
+    @Inject
+    private PluginContainer pluginContainer;
 
     private static Text textKey = Text.of("text");
     private static Text playerKey = Text.of("player");
@@ -161,6 +168,47 @@ public class StandardCommandsTest {
                     throw new CommandException(Text.of("Base"));
                 }))
                 .build(), "child").build(), "exception3");
+
+        Command.builder()
+                .setShortDescription(Text.of("A command that should never have the body executed."))
+                .setExecutor(((source, context) -> {
+                    source.sendMessage(Text.of("If you see this, it went wrong."));
+                    return CommandResult.success();
+                })).buildAndRegister(this.pluginContainer, "commandpre");
+
+        Command.builder()
+                .setShortDescription(Text.of("A command that should have its result changed after the execution."))
+                .setExecutor((source, context) -> {
+                    source.sendMessage(Text.of("If you see this, it went right!"));
+                    return CommandResult.empty();
+                })
+                .buildAndRegister(this.pluginContainer, "commandpost");
+
+        Command.builder()
+                .setShortDescription(Text.of("A command that processes commandpre and commandpost and checks the output."))
+                .setExecutor(((source, context) -> {
+                    CommandResult result = Sponge.getCommandManager().process(source, "commandpre");
+                    source.sendMessage(Text.of("commandpre: " + result.successCount().orElse(0)));
+
+                    CommandResult result2 = Sponge.getCommandManager().process(source, "commandpost");
+                    source.sendMessage(Text.of("commandpost: " + result2.successCount().orElse(0)));
+
+                    return CommandResult.success();
+                })).buildAndRegister(this.pluginContainer, "insideprocess");
     }
 
+    @Listener
+    public void onCommandPre(CommandExecutionEvent.Pre event) {
+        if (event.getCommand().equals("commandpre")) {
+            event.setResult(CommandResult.success());
+            event.setCancelled(true);
+        }
+    }
+
+    @Listener
+    public void onCommandPost(CommandExecutionEvent.Post event) {
+        if (event.getCommand().equals("commandpost")) {
+            event.setResult(CommandResult.empty());
+        }
+    }
 }

@@ -44,9 +44,10 @@ import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.InvocationCommandException;
 import org.spongepowered.api.command.dispatcher.Disambiguator;
 import org.spongepowered.api.command.format.CommandMessageFormats;
+import org.spongepowered.api.event.CauseStackManager;
 import org.spongepowered.api.event.CauseStackManager.StackFrame;
 import org.spongepowered.api.event.SpongeEventFactory;
-import org.spongepowered.api.event.command.SendCommandEvent;
+import org.spongepowered.api.event.command.CommandExecutionEvent;
 import org.spongepowered.api.event.command.TabCompleteEvent;
 import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.text.Text;
@@ -293,12 +294,25 @@ public class SpongeCommandManager implements CommandManager {
 
     @Override
     public CommandResult process(CommandSource source, String commandLine) {
-        final String[] argSplit = commandLine.split(" ", 2);
-        Sponge.getCauseStackManager().pushCause(source);
-        final SendCommandEvent event = SpongeEventFactory.createSendCommandEvent(Sponge.getCauseStackManager().getCurrentCause(),
-            argSplit.length > 1 ? argSplit[1] : "", argSplit[0], CommandResult.empty());
-        Sponge.getGame().getEventManager().post(event);
-        Sponge.getCauseStackManager().popCause();
+        String[] argSplit = commandLine.split(" ", 2);
+        if (argSplit.length == 1) {
+            argSplit = new String[] { argSplit[0], "" };
+        }
+
+        final CommandExecutionEvent.Pre event;
+        try (CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
+            frame.pushCause(source);
+
+            // Note, change this once SendCommandEvent is removed
+            event = SpongeEventFactory.createSendCommandEvent(
+                    frame.getCurrentCause(),
+                    argSplit[1],
+                    argSplit[0],
+                    CommandResult.empty()
+            );
+            Sponge.getGame().getEventManager().post(event);
+        }
+
         if (event.isCancelled()) {
             return event.getResult();
         }
@@ -311,6 +325,9 @@ public class SpongeCommandManager implements CommandManager {
             commandLine = commandLine + ' ' + event.getArguments();
         }
 
+        CommandResult result = CommandResult.empty();
+        Optional<CommandMapping> mapping = this.dispatcher.get(argSplit[0]);
+        Throwable throwable = null;
         try {
             try (StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame();
                  // Since we know we are in the main thread, this is safe to do without a thread check
@@ -320,8 +337,7 @@ public class SpongeCommandManager implements CommandManager {
                          .addEntityDropCaptures()
                          .buildAndSwitch()) {
                 Sponge.getCauseStackManager().pushCause(source);
-                final CommandResult result = this.dispatcher.process(source, commandLine);
-                return result;
+                result = this.dispatcher.process(source, commandLine);
             } catch (InvocationCommandException ex) {
                 if (ex.getCause() != null) {
                     throw ex.getCause();
@@ -337,15 +353,13 @@ public class SpongeCommandManager implements CommandManager {
                     source.sendMessage(CommandMessageFormats.ERROR.applyFormat(text));
                 }
 
-                if (ex.shouldIncludeUsage()) {
-                    final Optional<CommandMapping> mapping = this.dispatcher.get(argSplit[0], source);
-                    if (mapping.isPresent()) {
-                        source.sendMessage(CommandMessageFormats.ERROR.applyFormat(
-                                t("Usage: /%s %s", argSplit[0], mapping.get().getCommand().getUsage(source))));
-                    }
+                if (ex.shouldIncludeUsage() && mapping.isPresent()) {
+                    source.sendMessage(CommandMessageFormats.ERROR.applyFormat(
+                            t("Usage: /%s %s", argSplit[0], mapping.get().getCommand().getUsage(source))));
                 }
             }
         } catch (Throwable thr) {
+            throwable = thr;
             Text.Builder excBuilder;
             if (thr instanceof TextMessageException) {
                 Text text = ((TextMessageException) thr).getText();
@@ -365,7 +379,22 @@ public class SpongeCommandManager implements CommandManager {
             this.logger.error(TextSerializers.PLAIN.serialize(t("Error occurred while executing command '%s' for source %s: %s", commandLine, source.toString(), String
                     .valueOf(thr.getMessage()))), thr);
         }
-        return CommandResult.empty();
+
+        try (CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
+            frame.pushCause(source);
+
+            CommandExecutionEvent.Post postEvent = SpongeEventFactory.createCommandExecutionEventPost(
+                    frame.getCurrentCause(),
+                    result,
+                    result,
+                    argSplit[1],
+                    argSplit[0],
+                    mapping,
+                    Optional.ofNullable(throwable)
+            );
+            Sponge.getGame().getEventManager().post(event);
+            return postEvent.getResult();
+        }
     }
 
     @Override

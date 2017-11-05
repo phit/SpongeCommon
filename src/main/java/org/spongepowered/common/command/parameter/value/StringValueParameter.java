@@ -42,7 +42,7 @@ public class StringValueParameter implements CatalogedValueParameter {
     }
 
     @Override
-    public Optional<Object> getValue(CommandSource source, CommandArgs args, CommandContext context)
+    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context)
             throws ArgumentParseException {
         return Optional.of(args.next());
     }

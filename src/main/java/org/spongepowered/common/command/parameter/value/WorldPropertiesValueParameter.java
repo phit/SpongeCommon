@@ -62,7 +62,7 @@ public class WorldPropertiesValueParameter extends PatternMatchingValueParameter
     }
 
     @Override
-    public Optional<Object> getValue(CommandSource source, CommandArgs args, CommandContext context)
+    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context)
             throws ArgumentParseException {
         final String next = args.peek();
         if (next.startsWith("#")) {

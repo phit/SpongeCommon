@@ -50,8 +50,8 @@ public class LiteralValueParameter implements ValueParameter {
     }
 
     @Override
-    public Optional<Object> getValue(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
-        Iterable<String> supplier = literalSupplier.get();
+    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
+        Iterable<String> supplier = this.literalSupplier.get();
         for (String literal : supplier) {
             String current = args.next();
             if (!current.equalsIgnoreCase(literal)) {
@@ -89,10 +89,10 @@ public class LiteralValueParameter implements ValueParameter {
     // For the resettable builder
 
     public Supplier<Iterable<String>> getLiteralSupplier() {
-        return literalSupplier;
+        return this.literalSupplier;
     }
 
     public Supplier<?> getReturnedValueSupplier() {
-        return returnedValueSupplier;
+        return this.returnedValueSupplier;
     }
 }

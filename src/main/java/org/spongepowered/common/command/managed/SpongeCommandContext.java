@@ -147,23 +147,31 @@ public class SpongeCommandContext implements CommandContext {
     @Override
     public void putEntry(String key, Object value) {
         checkNotNull(value, "value");
-        this.parsedArgs.put(key, value);
+        if (value instanceof Collection) {
+            ((Collection<?>) value).forEach(x -> {
+                if (x != null) {
+                    this.parsedArgs.put(key, x);
+                }
+            });
+        } else {
+            this.parsedArgs.put(key, value);
+        }
     }
 
     @Override
-    public Snapshot getState() {
-        return new State(this.internalIdentifier, ImmutableMultimap.copyOf(this.parsedArgs), this.currentCommand);
+    public State getState() {
+        return new InternalState(this.internalIdentifier, ImmutableMultimap.copyOf(this.parsedArgs), this.currentCommand);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public void setState(Snapshot state) {
-        Preconditions.checkArgument(state instanceof State, "This is not a state obtained from getState");
-        State toRestore = (State) state;
+    public void setState(State state) {
+        Preconditions.checkArgument(state instanceof InternalState, "This is not a state obtained from getState");
+        InternalState toRestore = (InternalState) state;
         Preconditions.checkArgument(toRestore.internalIdentifier.equals(this.internalIdentifier), "This is not a state from this object");
 
         this.parsedArgs.clear();
-        this.parsedArgs.putAll(((State) state).contextState);
+        this.parsedArgs.putAll(((InternalState) state).contextState);
 
         this.currentCommand = toRestore.currentCommand;
     }
@@ -177,12 +185,12 @@ public class SpongeCommandContext implements CommandContext {
         this.currentCommand = command;
     }
 
-    private static class State implements Snapshot {
+    private static class InternalState implements State {
         private final UUID internalIdentifier;
         private final Multimap<String, Object> contextState;
         @Nullable private final String currentCommand;
 
-        private State(UUID internalIdentifier, Multimap<String, Object> contextState, @Nullable String currentCommand) {
+        private InternalState(UUID internalIdentifier, Multimap<String, Object> contextState, @Nullable String currentCommand) {
             this.internalIdentifier = internalIdentifier;
             this.contextState = contextState;
             this.currentCommand = currentCommand;

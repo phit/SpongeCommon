@@ -24,6 +24,8 @@
  */
 package org.spongepowered.common.command.parameter.value;
 
+import static org.spongepowered.common.util.SpongeCommonTranslationHelper.t;
+
 import com.google.common.collect.ImmutableList;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandSource;
@@ -33,6 +35,7 @@ import org.spongepowered.api.entity.living.player.User;
 import org.spongepowered.api.profile.GameProfile;
 import org.spongepowered.api.service.user.UserStorageService;
 import org.spongepowered.api.command.parameter.managed.standard.CatalogedValueParameter;
+import org.spongepowered.api.text.Text;
 
 import java.util.Optional;
 
@@ -71,6 +74,11 @@ public class UserValueParameter extends SelectorValueParameter implements Catalo
             .filter(Optional::isPresent)
             .map(Optional::get)
             .collect(ImmutableList.toImmutableList());
+    }
+
+    @Override
+    protected Text noChoicesError(String unformattedPattern) {
+        return t("The input \"%s\" did not match any users", unformattedPattern);
     }
 
     @Override

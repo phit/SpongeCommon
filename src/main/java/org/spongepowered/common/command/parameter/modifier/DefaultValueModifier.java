@@ -48,8 +48,8 @@ public class DefaultValueModifier implements ValueParameterModifier {
     public void onParse(Text key, CommandSource source, CommandArgs args, CommandContext context, ParsingContext parsingContext)
             throws ArgumentParseException {
         if (args.hasNext()) {
-            CommandArgs.Snapshot state = args.getState();
-            CommandContext.Snapshot contextState = context.getState();
+            CommandArgs.State state = args.getState();
+            CommandContext.State contextState = context.getState();
             try {
                 parsingContext.next();
             } catch (ArgumentParseException ex) {

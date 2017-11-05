@@ -67,7 +67,7 @@ public class CatalogableNumberValueParameter implements CatalogedValueParameter 
     }
 
     @Override
-    public Optional<Object> getValue(CommandSource source, CommandArgs args, CommandContext context)
+    public Optional<?> getValue(CommandSource source, CommandArgs args, CommandContext context)
             throws ArgumentParseException {
         String arg = args.next();
         try {

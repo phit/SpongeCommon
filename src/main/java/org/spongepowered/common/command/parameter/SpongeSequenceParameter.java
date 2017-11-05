@@ -32,7 +32,6 @@ import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.command.parameter.ArgumentParseException;
 import org.spongepowered.common.command.managed.SpongeCommandContext;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -56,8 +55,8 @@ public class SpongeSequenceParameter implements Parameter {
             return;
         }
 
-        CommandArgs.Snapshot argsSnapshot = args.getState();
-        CommandContext.Snapshot contextSnapshot = context.getState();
+        CommandArgs.State argsState = args.getState();
+        CommandContext.State contextState = context.getState();
 
         try {
             boolean parseFlags = context instanceof SpongeCommandContext && !((SpongeCommandContext) context).getFlags().isAnchored();
@@ -69,8 +68,8 @@ public class SpongeSequenceParameter implements Parameter {
             }
         } catch (Exception ex) {
             if (this.isOptionalWeak) {
-                args.setState(argsSnapshot);
-                context.setState(contextSnapshot);
+                args.setState(argsState);
+                context.setState(contextState);
                 return;
             }
 
@@ -82,10 +81,10 @@ public class SpongeSequenceParameter implements Parameter {
     public List<String> complete(CommandSource source, CommandArgs args, CommandContext context) throws ArgumentParseException {
         for (Iterator<Parameter> it = this.parameters.iterator(); it.hasNext(); ) {
             Parameter element = it.next();
-            CommandArgs.Snapshot startState = args.getState();
+            CommandArgs.State startState = args.getState();
             try {
                 element.parse(source, args, context);
-                CommandArgs.Snapshot endState = args.getState();
+                CommandArgs.State endState = args.getState();
                 if (!args.hasNext()) {
                     args.setState(startState);
                     List<String> inputs = element.complete(source, args, context);

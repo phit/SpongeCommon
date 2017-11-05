@@ -24,11 +24,14 @@
  */
 package org.spongepowered.common.command.parameter.value;
 
+import static org.spongepowered.common.util.SpongeCommonTranslationHelper.t;
+
 import net.minecraft.entity.player.EntityPlayerMP;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.managed.impl.SelectorValueParameter;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.command.parameter.managed.standard.CatalogedValueParameter;
+import org.spongepowered.api.text.Text;
 import org.spongepowered.common.SpongeImpl;
 
 import java.util.Arrays;
@@ -56,6 +59,11 @@ public class PlayerValueParameter extends SelectorValueParameter implements Cata
             throw new IllegalArgumentException("Input value " + choice + " was not a player");
         }
         return ret;
+    }
+
+    @Override
+    protected Text noChoicesError(String unformattedPattern) {
+        return t("The input \"%s\" did not match any online players", unformattedPattern);
     }
 
     @Override

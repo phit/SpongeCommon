@@ -31,18 +31,22 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandException;
+import org.spongepowered.api.command.CommandMapping;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.parameter.token.InputTokenizer;
 import org.spongepowered.api.command.parameter.token.InputTokenizers;
 import org.spongepowered.api.command.managed.ChildExceptionBehavior;
 import org.spongepowered.api.command.managed.ChildExceptionBehaviors;
 import org.spongepowered.api.command.managed.CommandExecutor;
+import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.command.parameter.flag.Flags;
 import org.spongepowered.api.util.Tuple;
+import org.spongepowered.common.SpongeImpl;
 import org.spongepowered.common.command.parameter.flag.NoFlags;
 
 import javax.annotation.Nullable;
@@ -154,6 +158,11 @@ public class SpongeCommandBuilder implements Command.Builder {
                 this.extendedDescription,
                 this.requirePermissionForChildren
         );
+    }
+
+    @Override
+    public Optional<CommandMapping> buildAndRegister(PluginContainer pluginContainer, List<String> aliases) {
+        return Sponge.getCommandManager().register(pluginContainer, build(), aliases);
     }
 
     @Override
