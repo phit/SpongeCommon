@@ -60,6 +60,7 @@ import org.spongepowered.api.event.CauseStackManager;
 import org.spongepowered.api.event.block.InteractBlockEvent;
 import org.spongepowered.api.event.cause.EventContextKeys;
 import org.spongepowered.api.item.inventory.slot.EquipmentSlot;
+import org.spongepowered.api.util.Direction;
 import org.spongepowered.api.util.Tristate;
 import org.spongepowered.api.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -130,6 +131,7 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
 
         } // else { // Sponge - Remove unecessary else
         // Sponge Start - Create an interact block event before something happens.
+        // Store reference of current player's itemstack in case it changes
         final ItemStack oldStack = stack.copy();
         final Vector3d hitVec = new Vector3d(pos.getX() + hitX, pos.getY() + hitY, pos.getZ() + hitZ);
         final BlockSnapshot currentSnapshot = ((World) worldIn).createSnapshot(pos.getX(), pos.getY(), pos.getZ());
@@ -155,7 +157,7 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
                 this.player.connection.sendPacket(new SPacketCloseWindow(0));
 
             } else if (state.getProperties().containsKey(BlockDoor.HALF)) {
-                // Stopping a door from opening while `g the top part will allow the door to open, we need to update the
+                // Stopping a door from opening while interacting the top part will allow the door to open, we need to update the
                 // client to resolve this
                 if (state.getValue(BlockDoor.HALF) == BlockDoor.EnumDoorHalf.LOWER) {
                     this.player.connection.sendPacket(new SPacketBlockChange(worldIn, pos.up()));
@@ -268,17 +270,28 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
 
         // Sponge - start
         final ItemStack oldStack = stack.copy();
-        final boolean interactItemCancelled = SpongeCommonEventFactory.callInteractItemEventSecondary(player, oldStack, hand, null, BlockSnapshot.NONE).isCancelled();
+        final BlockSnapshot currentSnapshot = BlockSnapshot.NONE;
+        final boolean interactItemCancelled = SpongeCommonEventFactory.callInteractItemEventSecondary(player, oldStack, hand, null, currentSnapshot).isCancelled();
+        final InteractBlockEvent.Secondary event = SpongeCommonEventFactory.createInteractBlockEventSecondary(player, oldStack,
+                null, currentSnapshot, Direction.NONE, hand);
+
+        event.setCancelled(interactItemCancelled);
+
+        SpongeImpl.postEvent(event);
 
         if (!ItemStack.areItemStacksEqual(oldStack, this.player.getHeldItem(hand))) {
             SpongeCommonEventFactory.playerInteractItemChanged = true;
         }
 
-        if (interactItemCancelled) {
+        SpongeCommonEventFactory.lastInteractItemOnBlockCancelled = event.isCancelled() || event.getUseItemResult() == Tristate.FALSE;
+
+        if (event.isCancelled()) {
+            SpongeCommonEventFactory.interactBlockRightClickEventCancelled = true;
+
             ((EntityPlayerMP) player).sendContainerToPlayer(player.inventoryContainer);
             return EnumActionResult.FAIL;
         }
-        // Sponge - end
+        // Sponge End
 
         if (stack.isEmpty()) {
             return EnumActionResult.PASS;
