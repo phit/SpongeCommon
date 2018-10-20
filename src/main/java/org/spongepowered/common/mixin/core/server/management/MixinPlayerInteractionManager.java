@@ -252,6 +252,12 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
     }
 
     /**
+     * @reason Due to the way that buckets and the like can be handled
+     * on the client, often times we need to cancel the item stack usage
+     * due to server side cancellation logic that may not exist on the client.
+     * Therefor, the cancellation of possible block changes doesn't take
+     * effect, and therefor requires telling the client to set back the item
+     * in hand.
      * @reason Fire interact item event.
      */
     @Overwrite
