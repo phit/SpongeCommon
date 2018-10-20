@@ -96,80 +96,6 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
     }
 
     /**
-     * @author gabizou - September 5th, 2018
-     * @reason Due to the way that buckets and the like can be handled
-     * on the client, often times we need to cancel the item stack usage
-     * due to server side cancellation logic that may not exist on the client.
-     * Therefor, the cancellation of possible block changes doesn't take
-     * effect, and therefor requires telling the client to set back the item
-     * in hand.
-     *
-     * @param actionResult The action result returned from useItemRightClick, which if
-     *  the result is FAIL, then we should be setting the item in hand back.
-     * @param player The player
-     * @param worldIn The world
-     * @param stack The stack
-     * @param hand The hand
-     * @return The result, but we will inject a "send inventory to player packet" fi it was failed
-     */
-    @Redirect(
-        method = "processRightClick",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/util/ActionResult;getType()Lnet/minecraft/util/EnumActionResult;",
-            ordinal = 0 // We need to target only the first getType, since
-                      // there's technically two getTypes that are being caught by the slice
-
-        ),
-        slice = @Slice(
-            from = @At(
-                value = "INVOKE",
-                target = "Lnet/minecraft/item/ItemStack;getMaxItemUseDuration()I",
-                ordinal = 0 // This targets the first max use duration in the massive if statement.
-            ),
-            to = @At(
-                value = "FIELD",
-                target = "Lnet/minecraft/util/EnumActionResult;FAIL:Lnet/minecraft/util/EnumActionResult;"
-            )
-        )
-    )
-    private EnumActionResult spongeGetResultCheckForFailure(ActionResult<ItemStack> actionResult, EntityPlayer player, net.minecraft.world.World worldIn, ItemStack stack, EnumHand hand) {
-        // Sanity checks on the world being used (hey, i don't know the rules about clients...
-        // and if the world is in fact a responsible server world.
-        final EnumActionResult result = actionResult.getType();
-        if (!(worldIn instanceof IMixinWorld) || ((IMixinWorld) worldIn).isFake()) {
-            return result;
-        }
-
-        // Otherwise, let's find out if it's a failed result
-        if (result == EnumActionResult.FAIL && player instanceof EntityPlayerMP) {
-            // Then, go ahead and tell the client about the change.
-            // A few comments about this:
-            // window id of -2 sets the player's inventory slot instead of the "held cursor"
-            // Then, we need to get the slot index for the held item, which is always
-            // playerMP.inventory.currentItem
-            final EntityPlayerMP playerMP = (EntityPlayerMP) player;
-            final SPacketSetSlot packetToSend;
-            if (hand == EnumHand.MAIN_HAND) {
-                // And here, my friends, is why the offhand slot is so stupid....
-                packetToSend = new SPacketSetSlot(-2, player.inventory.currentItem, actionResult.getResult());
-            } else {
-                // This is the type of stupidity that comes from finding out that offhand slots
-                // are always the last remaining slot index remaining of the player's overall inventory.
-                // And this has to be done to avoid duplications by inadvertently setting the main hand
-                // item.
-                final int offhandSlotIndex = player.inventory.getSizeInventory() - 1;
-                packetToSend = new SPacketSetSlot(-2, offhandSlotIndex, actionResult.getResult());
-            }
-            // And finally, set the packet.
-            playerMP.connection.sendPacket(packetToSend);
-            // this is a full stop re-sync to the client, code above might not actually matter.
-            playerMP.sendContainerToPlayer(player.inventoryContainer);
-        }
-        return result;
-    }
-
-    /**
      * @author Aaron1011
      * @author gabizou - May 28th, 2016 - Rewritten for 1.9.4
      *
@@ -207,7 +133,6 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
         final ItemStack oldStack = stack.copy();
         final Vector3d hitVec = new Vector3d(pos.getX() + hitX, pos.getY() + hitY, pos.getZ() + hitZ);
         final BlockSnapshot currentSnapshot = ((World) worldIn).createSnapshot(pos.getX(), pos.getY(), pos.getZ());
-        Sponge.getCauseStackManager().addContext(EventContextKeys.USED_ITEM, ItemStackUtil.snapshotOf(oldStack));
         final boolean interactItemCancelled = SpongeCommonEventFactory.callInteractItemEventSecondary(player, oldStack, hand, hitVec, currentSnapshot).isCancelled();
         final InteractBlockEvent.Secondary event = SpongeCommonEventFactory.createInteractBlockEventSecondary(player, oldStack,
                 hitVec, currentSnapshot, DirectionFacingProvider.getInstance().getKey(facing).get(), hand);
@@ -271,7 +196,6 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
                 result = this.handleOpenEvent(lastOpenContainer, this.player, currentSnapshot, result);
 
                 if (result != EnumActionResult.PASS) {
-
                     return result;
                 }
             } else {
@@ -296,7 +220,8 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
             {
                 return EnumActionResult.FAIL;
             }
-        } // else if (this.isCreative()) { // Sponge - Rewrite this to handle an isCreative check after the result, since we have a copied stack at the top of this method.
+        }
+        // else if (this.isCreative()) { // Sponge - Rewrite this to handle an isCreative check after the result, since we have a copied stack at the top of this method.
         //    int j = stack.getMetadata();
         //    int i = stack.stackSize;
         //    EnumActionResult enumactionresult = stack.onItemUse(player, worldIn, pos, hand, facing, offsetX, offsetY, offsetZ);
@@ -324,6 +249,106 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
         return result;
         // Sponge end
         // } // Sponge - Remove unecessary else bracket
+    }
+
+    /**
+     * @reason Fire interact item event.
+     */
+    @Overwrite
+    public EnumActionResult processRightClick(EntityPlayer player, net.minecraft.world.World worldIn, ItemStack stack, EnumHand hand) {
+        if (this.gameType == GameType.SPECTATOR) {
+            return EnumActionResult.PASS;
+        }
+
+        // Sponge - start
+        final ItemStack oldStack = stack.copy();
+        final boolean interactItemCancelled = SpongeCommonEventFactory.callInteractItemEventSecondary(player, oldStack, hand, null, BlockSnapshot.NONE).isCancelled();
+
+        if (!ItemStack.areItemStacksEqual(oldStack, this.player.getHeldItem(hand))) {
+            SpongeCommonEventFactory.playerInteractItemChanged = true;
+        }
+
+        if (interactItemCancelled) {
+            ((EntityPlayerMP) player).sendContainerToPlayer(player.inventoryContainer);
+            return EnumActionResult.FAIL;
+        }
+        // Sponge - end
+
+        if (stack.isEmpty()) {
+            return EnumActionResult.PASS;
+        } else if (player.getCooldownTracker().hasCooldown(stack.getItem())) {
+            return EnumActionResult.PASS;
+        }
+
+
+        int i = stack.getCount();
+        int j = stack.getMetadata();
+        ActionResult<ItemStack> actionresult = stack.useItemRightClick(worldIn, player, hand);
+        ItemStack itemstack = actionresult.getResult();
+
+        if (itemstack == stack && itemstack.getCount() == i && itemstack.getMaxItemUseDuration() <= 0 && itemstack.getMetadata() == j) {
+
+            // Sponge - start
+
+            // Sanity checks on the world being used (hey, i don't know the rules about clients...
+            // and if the world is in fact a responsible server world.
+            final EnumActionResult result = actionresult.getType();
+            if (!(worldIn instanceof IMixinWorld) || ((IMixinWorld) worldIn).isFake()) {
+                return result;
+            }
+
+            // Otherwise, let's find out if it's a failed result
+            if (result == EnumActionResult.FAIL && player instanceof EntityPlayerMP) {
+                // Then, go ahead and tell the client about the change.
+                // A few comments about this:
+                // window id of -2 sets the player's inventory slot instead of the "held cursor"
+                // Then, we need to get the slot index for the held item, which is always
+                // playerMP.inventory.currentItem
+                final EntityPlayerMP playerMP = (EntityPlayerMP) player;
+                final SPacketSetSlot packetToSend;
+                if (hand == EnumHand.MAIN_HAND) {
+                    // And here, my friends, is why the offhand slot is so stupid....
+                    packetToSend = new SPacketSetSlot(-2, player.inventory.currentItem, actionresult.getResult());
+                } else {
+                    // This is the type of stupidity that comes from finding out that offhand slots
+                    // are always the last remaining slot index remaining of the player's overall inventory.
+                    // And this has to be done to avoid duplications by inadvertently setting the main hand
+                    // item.
+                    final int offhandSlotIndex = player.inventory.getSizeInventory() - 1;
+                    packetToSend = new SPacketSetSlot(-2, offhandSlotIndex, actionresult.getResult());
+                }
+                // And finally, set the packet.
+                playerMP.connection.sendPacket(packetToSend);
+                // this is a full stop re-sync to the client, code above might not actually matter.
+                playerMP.sendContainerToPlayer(player.inventoryContainer);
+            }
+            // Sponge - end
+
+            return result;
+
+        } else if (actionresult.getType() == EnumActionResult.FAIL && itemstack.getMaxItemUseDuration() > 0 && !player.isHandActive()) {
+            return actionresult.getType();
+        } else {
+            player.setHeldItem(hand, itemstack);
+
+            if (this.isCreative()) {
+                itemstack.setCount(i);
+
+                if (itemstack.isItemStackDamageable()) {
+                    itemstack.setItemDamage(j);
+                }
+            }
+
+            if (itemstack.isEmpty()) {
+                player.setHeldItem(hand, ItemStack.EMPTY);
+            }
+
+            if (!player.isHandActive()) {
+                ((EntityPlayerMP)player).sendContainerToPlayer(player.inventoryContainer);
+            }
+
+            return actionresult.getType();
+        }
     }
 
     @Override

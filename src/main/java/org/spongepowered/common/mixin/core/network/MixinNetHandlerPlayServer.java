@@ -620,6 +620,27 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
         return actionResult;
     }
 
+    @Redirect(method = "processTryUseItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/management/PlayerInteractionManager;processRightClick(Lnet/minecraft/entity/player/EntityPlayer;Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;Lnet/minecraft/util/EnumHand;)Lnet/minecraft/util/EnumActionResult;"))
+    public EnumActionResult onProcessRightClick(PlayerInteractionManager interactionManager, EntityPlayer player, net.minecraft.world.World worldIn, @Nullable ItemStack stack, EnumHand hand) {
+        EnumActionResult actionResult = interactionManager.processRightClick(this.player, worldIn, stack, hand);
+        // If a plugin or mod has changed the item, avoid restoring
+        if (!SpongeCommonEventFactory.playerInteractItemChanged) {
+            final PhaseTracker phaseTracker = PhaseTracker.getInstance();
+            final PhaseData peek = phaseTracker.getCurrentPhaseData();
+            final ItemStack itemStack = ItemStackUtil.toNative(((PacketContext<?>) peek.context).getItemUsed());
+
+            // Only do a restore if something actually changed. The client does an identity check ('==')
+            // to determine if it should continue using an itemstack. If we always resend the itemstack, we end up
+            // cancelling item usage (e.g. eating food) that occurs while targeting a block
+            if (!ItemStack.areItemStacksEqual(itemStack, player.getHeldItem(hand)) && SpongeCommonEventFactory.interactBlockRightClickEventCancelled) {
+                PacketPhaseUtil.handlePlayerSlotRestore((EntityPlayerMP) player, itemStack, hand);
+            }
+        }
+        SpongeCommonEventFactory.playerInteractItemChanged = false;
+        SpongeCommonEventFactory.interactBlockRightClickEventCancelled = false;
+        return actionResult;
+    }
+
     @Nullable
     @Redirect(method = "processPlayerDigging", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/EntityPlayerMP;dropItem(Z)Lnet/minecraft/entity/item/EntityItem;"))
     public EntityItem onPlayerDropItem(EntityPlayerMP player, boolean dropAll) {
@@ -790,7 +811,6 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
                     try (CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
                         EnumHand hand = packetIn.getHand();
                         ItemStack itemstack = hand != null ? this.player.getHeldItem(hand) : ItemStack.EMPTY;
-                        frame.addContext(EventContextKeys.USED_ITEM, ItemStackUtil.snapshotOf(itemstack));
 
                         SpongeCommonEventFactory.lastSecondaryPacketTick = this.server.getTickCounter();
 
