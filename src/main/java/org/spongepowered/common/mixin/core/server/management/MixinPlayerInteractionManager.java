@@ -78,6 +78,7 @@ import org.spongepowered.common.interfaces.server.management.IMixinPlayerInterac
 import org.spongepowered.common.interfaces.world.IMixinWorld;
 import org.spongepowered.common.item.inventory.util.ItemStackUtil;
 import org.spongepowered.common.registry.provider.DirectionFacingProvider;
+import org.spongepowered.common.util.VecHelper;
 
 @Mixin(value = PlayerInteractionManager.class)
 public abstract class MixinPlayerInteractionManager implements IMixinPlayerInteractionManager {
@@ -133,8 +134,8 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
         // Sponge Start - Create an interact block event before something happens.
         // Store reference of current player's itemstack in case it changes
         final ItemStack oldStack = stack.copy();
-        final Vector3d hitVec = new Vector3d(pos.getX() + hitX, pos.getY() + hitY, pos.getZ() + hitZ);
-        final BlockSnapshot currentSnapshot = ((World) worldIn).createSnapshot(pos.getX(), pos.getY(), pos.getZ());
+        final Vector3d hitVec = VecHelper.toVector3d(pos.add(hitX, hitY, hitZ));
+        final BlockSnapshot currentSnapshot = ((org.spongepowered.api.world.World) worldIn).createSnapshot(pos.getX(), pos.getY(), pos.getZ());
         final boolean interactItemCancelled = SpongeCommonEventFactory.callInteractItemEventSecondary(player, oldStack, hand, hitVec, currentSnapshot).isCancelled();
         final InteractBlockEvent.Secondary event = SpongeCommonEventFactory.createInteractBlockEventSecondary(player, oldStack,
                 hitVec, currentSnapshot, DirectionFacingProvider.getInstance().getKey(facing).get(), hand);
