@@ -59,6 +59,7 @@ import org.spongepowered.api.block.BlockSnapshot;
 import org.spongepowered.api.event.CauseStackManager;
 import org.spongepowered.api.event.block.InteractBlockEvent;
 import org.spongepowered.api.event.cause.EventContextKeys;
+import org.spongepowered.api.event.item.inventory.InteractItemEvent;
 import org.spongepowered.api.item.inventory.slot.EquipmentSlot;
 import org.spongepowered.api.util.Direction;
 import org.spongepowered.api.util.Tristate;
@@ -136,11 +137,8 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
         final ItemStack oldStack = stack.copy();
         final Vector3d hitVec = VecHelper.toVector3d(pos.add(hitX, hitY, hitZ));
         final BlockSnapshot currentSnapshot = ((org.spongepowered.api.world.World) worldIn).createSnapshot(pos.getX(), pos.getY(), pos.getZ());
-        final boolean interactItemCancelled = SpongeCommonEventFactory.callInteractItemEventSecondary(player, oldStack, hand, hitVec, currentSnapshot).isCancelled();
         final InteractBlockEvent.Secondary event = SpongeCommonEventFactory.createInteractBlockEventSecondary(player, oldStack,
                 hitVec, currentSnapshot, DirectionFacingProvider.getInstance().getKey(facing).get(), hand);
-
-        event.setCancelled(interactItemCancelled);
 
         SpongeImpl.postEvent(event);
 
@@ -272,19 +270,13 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
         // Sponge - start
         final ItemStack oldStack = stack.copy();
         final BlockSnapshot currentSnapshot = BlockSnapshot.NONE;
-        final boolean interactItemCancelled = SpongeCommonEventFactory.callInteractItemEventSecondary(player, oldStack, hand, null, currentSnapshot).isCancelled();
-        final InteractBlockEvent.Secondary event = SpongeCommonEventFactory.createInteractBlockEventSecondary(player, oldStack,
-                null, currentSnapshot, Direction.NONE, hand);
-
-        event.setCancelled(interactItemCancelled);
-
-        SpongeImpl.postEvent(event);
+        final InteractItemEvent.Secondary event = SpongeCommonEventFactory.callInteractItemEventSecondary(player, oldStack, hand, null, currentSnapshot);
 
         if (!ItemStack.areItemStacksEqual(oldStack, this.player.getHeldItem(hand))) {
             SpongeCommonEventFactory.playerInteractItemChanged = true;
         }
 
-        SpongeCommonEventFactory.lastInteractItemOnBlockCancelled = event.isCancelled() || event.getUseItemResult() == Tristate.FALSE;
+        SpongeCommonEventFactory.lastInteractItemOnBlockCancelled = event.isCancelled(); //|| event.getUseItemResult() == Tristate.FALSE;
 
         if (event.isCancelled()) {
             SpongeCommonEventFactory.interactBlockRightClickEventCancelled = true;
