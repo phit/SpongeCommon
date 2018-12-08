@@ -179,15 +179,15 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
         }
         // Sponge End
 
+        EnumActionResult result = EnumActionResult.PASS;
+
         boolean bypass = true;
         final ItemStack[] itemStacks = {player.getHeldItemMainhand(), player.getHeldItemOffhand()};
         for (ItemStack s : itemStacks) {
             bypass = bypass && s.isEmpty();
         }
 
-        EnumActionResult result = EnumActionResult.PASS;
-
-        if (!player.isSneaking() || bypass) {
+        if (!player.isSneaking() || bypass || event.getUseBlockResult() == Tristate.TRUE) {
             // Sponge start - check event useBlockResult, and revert the client if it's FALSE.
             // also, store the result instead of returning immediately
             if (event.getUseBlockResult() != Tristate.FALSE) {
@@ -199,6 +199,7 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
                 if (iblockstate.getBlock().onBlockActivated(worldIn, pos, iblockstate, player, hand, facing, hitX, hitY, hitZ)) {
                     result = EnumActionResult.SUCCESS;
                 }
+
                 // if itemstack changed, avoid restore
                 if (!ItemStack.areItemStacksEqual(oldStack, this.player.getHeldItem(hand))) {
                     SpongeCommonEventFactory.playerInteractItemChanged = true;
@@ -220,11 +221,10 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
             return EnumActionResult.PASS;
         } else if (player.getCooldownTracker().hasCooldown(stack.getItem())) {
             return EnumActionResult.PASS;
-        } else if (stack.getItem() instanceof ItemBlock) {
+        } else if (stack.getItem() instanceof ItemBlock && !player.canUseCommandBlock()) {
             Block block = ((ItemBlock)stack.getItem()).getBlock();
 
-            if ((block instanceof BlockCommandBlock || block instanceof BlockStructure) && !player.canUseCommandBlock())
-            {
+            if (block instanceof BlockCommandBlock || block instanceof BlockStructure) {
                 return EnumActionResult.FAIL;
             }
         }
