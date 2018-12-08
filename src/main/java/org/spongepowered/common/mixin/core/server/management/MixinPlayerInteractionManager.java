@@ -179,26 +179,32 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
         }
         // Sponge End
 
-        if (!player.isSneaking() || player.getHeldItemMainhand().isEmpty() && player.getHeldItemOffhand().isEmpty()) {
+        boolean bypass = true;
+        final ItemStack[] itemStacks = {player.getHeldItemMainhand(), player.getHeldItemOffhand()};
+        for (ItemStack s : itemStacks) {
+            bypass = bypass && s.isEmpty();
+        }
+
+        EnumActionResult result = EnumActionResult.PASS;
+
+        if (!player.isSneaking() || bypass) {
             // Sponge start - check event useBlockResult, and revert the client if it's FALSE.
-            // Also, store the result instead of returning immediately
+            // also, store the result instead of returning immediately
             if (event.getUseBlockResult() != Tristate.FALSE) {
                 IBlockState iblockstate = (IBlockState) currentSnapshot.getState();
                 Container lastOpenContainer = player.openContainer;
 
-                EnumActionResult result = iblockstate.getBlock().onBlockActivated(worldIn, pos, iblockstate, player, hand, facing, hitX, hitY, hitZ)
-                         ? EnumActionResult.SUCCESS
-                         : EnumActionResult.PASS;
+                // Don't close client gui based on the result of Block#onBlockActivated
+                // See https://github.com/SpongePowered/SpongeForge/commit/a684cccd0355d1387a30a7fee08d23fa308273c9
+                if (iblockstate.getBlock().onBlockActivated(worldIn, pos, iblockstate, player, hand, facing, hitX, hitY, hitZ)) {
+                    result = EnumActionResult.SUCCESS;
+                }
                 // if itemstack changed, avoid restore
                 if (!ItemStack.areItemStacksEqual(oldStack, this.player.getHeldItem(hand))) {
                     SpongeCommonEventFactory.playerInteractItemChanged = true;
                 }
 
                 result = this.handleOpenEvent(lastOpenContainer, this.player, currentSnapshot, result);
-
-                if (result != EnumActionResult.PASS) {
-                    return result;
-                }
             } else {
                 // Need to send a block change to the client, because otherwise, they are not
                 // going to be told about the block change.
@@ -234,7 +240,7 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
         // }
         // } // Sponge - Remove unecessary else bracket
         // Sponge Start - complete the method with the micro change of resetting item damage and quantity from the copied stack.
-        EnumActionResult result = EnumActionResult.PASS;
+
         if (event.getUseItemResult() != Tristate.FALSE) {
             result = stack.onItemUse(player, worldIn, pos, hand, facing, hitX, hitY, hitZ);
             if (this.isCreative()) {
