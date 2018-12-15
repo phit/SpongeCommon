@@ -259,6 +259,9 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
     }
 
     /**
+     * @author gabizou - September 5th, 2018
+     * @author morpheus - December 15th, 2018 - Move the @redirect inside the @Overwrite and fire InteractItemEvent
+     *
      * @reason Due to the way that buckets and the like can be handled
      * on the client, often times we need to cancel the item stack usage
      * due to server side cancellation logic that may not exist on the client.
