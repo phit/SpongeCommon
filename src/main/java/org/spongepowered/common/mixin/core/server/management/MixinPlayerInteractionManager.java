@@ -181,13 +181,7 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
 
         EnumActionResult result = EnumActionResult.PASS;
 
-        boolean bypass = true;
-        final ItemStack[] itemStacks = {player.getHeldItemMainhand(), player.getHeldItemOffhand()};
-        for (ItemStack s : itemStacks) {
-            bypass = bypass && s.isEmpty();
-        }
-
-        if (!player.isSneaking() || bypass || event.getUseBlockResult() == Tristate.TRUE) {
+        if (!player.isSneaking() || (player.getHeldItemMainhand().isEmpty() && player.getHeldItemOffhand().isEmpty()) || event.getUseBlockResult() == Tristate.TRUE) {
             // Sponge start - check event useBlockResult, and revert the client if it's FALSE.
             // also, store the result instead of returning immediately
             if (event.getUseBlockResult() != Tristate.FALSE) {
