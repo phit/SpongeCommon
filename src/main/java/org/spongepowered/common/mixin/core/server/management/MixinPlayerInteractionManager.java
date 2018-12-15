@@ -30,6 +30,7 @@ import net.minecraft.block.BlockChest;
 import net.minecraft.block.BlockCommandBlock;
 import net.minecraft.block.BlockDoor;
 import net.minecraft.block.BlockStructure;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -52,6 +53,7 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.GameType;
 import net.minecraft.world.ILockableContainer;
 import org.spongepowered.api.Sponge;
@@ -63,6 +65,7 @@ import org.spongepowered.api.event.item.inventory.InteractItemEvent;
 import org.spongepowered.api.item.inventory.slot.EquipmentSlot;
 import org.spongepowered.api.util.Direction;
 import org.spongepowered.api.util.Tristate;
+import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -73,8 +76,10 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.common.SpongeImpl;
+import org.spongepowered.common.SpongeImplHooks;
 import org.spongepowered.common.event.SpongeCommonEventFactory;
 import org.spongepowered.common.interfaces.IMixinContainer;
+import org.spongepowered.common.interfaces.entity.player.IMixinEntityPlayerMP;
 import org.spongepowered.common.interfaces.server.management.IMixinPlayerInteractionManager;
 import org.spongepowered.common.interfaces.world.IMixinWorld;
 import org.spongepowered.common.item.inventory.util.ItemStackUtil;
@@ -87,14 +92,95 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
     @Shadow public EntityPlayerMP player;
     @Shadow public net.minecraft.world.World world;
     @Shadow private GameType gameType;
+    @Shadow private int initialDamage;
+    @Shadow private int curblockDamage;
+    @Shadow private boolean isDestroyingBlock;
+    @Shadow private BlockPos destroyPos;
+    @Shadow private int durabilityRemainingOnBlock;
 
     @Shadow public abstract boolean isCreative();
+    @Shadow public abstract boolean tryHarvestBlock(BlockPos pos);
 
     @Inject(method = "blockRemoving", at = @At("HEAD"), cancellable = true)
     public void onBlockRemoving(final BlockPos pos, final CallbackInfo ci) {
         if (SpongeCommonEventFactory.interactBlockLeftClickEventCancelled) {
             SpongeCommonEventFactory.interactBlockLeftClickEventCancelled = false;
             ci.cancel();
+        }
+    }
+
+    /**
+     * @author morpheus - December 15th, 2018
+     *
+     * @reason Fire interact block event.
+     */
+    @Overwrite
+    public void onBlockClicked(BlockPos pos, EnumFacing side) {
+
+        final BlockSnapshot blockSnapshot = new Location<>((World) this.player.world, VecHelper.toVector3d(pos)).createSnapshot();
+        final RayTraceResult result = SpongeImplHooks.rayTraceEyes(this.player, SpongeImplHooks.getBlockReachDistance(this.player));
+        final Vector3d vec = result == null ? null : VecHelper.toVector3d(result.hitVec);
+        final ItemStack stack = this.player.getHeldItemMainhand();
+
+        final InteractBlockEvent.Primary blockEvent =
+                SpongeCommonEventFactory.callInteractBlockEventPrimary(this.player, stack, blockSnapshot, EnumHand.MAIN_HAND, side, vec);
+
+        boolean isCancelled = blockEvent.isCancelled();
+        SpongeCommonEventFactory.interactBlockLeftClickEventCancelled = isCancelled;
+
+        if (isCancelled) {
+            SpongeCommonEventFactory.interactBlockLeftClickEventCancelled = true;
+
+            final IBlockState state = this.player.world.getBlockState(pos);
+            ((IMixinEntityPlayerMP) this.player).sendBlockChange(pos, state);
+            this.player.world.notifyBlockUpdate(pos, this.player.world.getBlockState(pos), state, 3);
+            return;
+        }
+
+        if (this.isCreative()) {
+            if (!this.world.extinguishFire((EntityPlayer)null, pos, side)) {
+                this.tryHarvestBlock(pos);
+            }
+        } else {
+            IBlockState iblockstate = this.world.getBlockState(pos);
+            Block block = iblockstate.getBlock();
+
+            if (this.gameType.hasLimitedInteractions()) {
+                if (this.gameType == GameType.SPECTATOR) {
+                    return;
+                }
+
+                if (!this.player.isAllowEdit()) {
+                    ItemStack itemstack = this.player.getHeldItemMainhand();
+
+                    if (itemstack.isEmpty()) {
+                        return;
+                    }
+
+                    if (!itemstack.canDestroy(block)) {
+                        return;
+                    }
+                }
+            }
+
+            this.world.extinguishFire((EntityPlayer)null, pos, side);
+            this.initialDamage = this.curblockDamage;
+            float f = 1.0F;
+
+            if (iblockstate.getMaterial() != Material.AIR) {
+                block.onBlockClicked(this.world, pos, this.player);
+                f = iblockstate.getPlayerRelativeBlockHardness(this.player, this.player.world, pos);
+            }
+
+            if (iblockstate.getMaterial() != Material.AIR && f >= 1.0F) {
+                this.tryHarvestBlock(pos);
+            } else {
+                this.isDestroyingBlock = true;
+                this.destroyPos = pos;
+                int i = (int)(f * 10.0F);
+                this.world.sendBlockBreakProgress(this.player.getEntityId(), pos, i);
+                this.durabilityRemainingOnBlock = i;
+            }
         }
     }
 
