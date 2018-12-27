@@ -706,10 +706,7 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
     }
 
     @Inject(method = "handleAnimation", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/EntityPlayerMP;markPlayerActive()V"), cancellable = true)
-    public void onHandleAnimation(CPacketAnimation packetIn, CallbackInfo ci)
-    {
-        SpongeCommonEventFactory.lastAnimationPacketTick = SpongeImpl.getServer().getTickCounter();
-        SpongeCommonEventFactory.lastAnimationPlayer = new WeakReference<>(this.player);
+    public void onHandleAnimation(CPacketAnimation packetIn, CallbackInfo ci) {
         if (ShouldFire.ANIMATE_HAND_EVENT) {
             HandType handType = packetIn.getHand() == EnumHand.MAIN_HAND ? HandTypes.MAIN_HAND : HandTypes.OFF_HAND;
             final ItemStack heldItem = this.player.getHeldItem(packetIn.getHand());
@@ -722,11 +719,6 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
         }
     }
 
-    @Inject(method = "processPlayerDigging", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;getWorld(I)Lnet/minecraft/world/WorldServer;"))
-    public void onProcessPlayerDigging(CPacketPlayerDigging packetIn, CallbackInfo ci) {
-        SpongeCommonEventFactory.lastPrimaryPacketTick = SpongeImpl.getServer().getTickCounter();
-    }
-
     @Inject(method = "processPlayerDigging", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/EntityPlayerMP;dropItem(Z)Lnet/minecraft/entity/item/EntityItem;"))
     public void onProcessPlayerDiggingDropItem(CPacketPlayerDigging packetIn, CallbackInfo ci) {
         final ItemStack stack = this.player.getHeldItemMainhand();
@@ -737,7 +729,6 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
 
     @Inject(method = "processTryUseItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;getWorld(I)Lnet/minecraft/world/WorldServer;"), cancellable = true)
     public void onProcessTryUseItem(CPacketPlayerTryUseItem packetIn, CallbackInfo ci) {
-        SpongeCommonEventFactory.lastSecondaryPacketTick = SpongeImpl.getServer().getTickCounter();
         long packetDiff = System.currentTimeMillis() - SpongeCommonEventFactory.lastTryBlockPacketTimeStamp;
         // If the time between packets is small enough, use the last result.
         if (packetDiff < 100) {
@@ -753,8 +744,6 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
         // InteractItemEvent on block must be handled in PlayerInteractionManager to support item/block results.
         // Only track the timestamps to support our block animation events
         SpongeCommonEventFactory.lastTryBlockPacketTimeStamp = System.currentTimeMillis();
-        SpongeCommonEventFactory.lastSecondaryPacketTick = SpongeImpl.getServer().getTickCounter();
-
     }
 
     /**
@@ -812,8 +801,6 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
                         EnumHand hand = packetIn.getHand();
                         ItemStack itemstack = hand != null ? this.player.getHeldItem(hand) : ItemStack.EMPTY;
 
-                        SpongeCommonEventFactory.lastSecondaryPacketTick = this.server.getTickCounter();
-
                         // Is interaction allowed with item in hand
                         if (SpongeCommonEventFactory.callInteractItemEventSecondary(this.player, itemstack, hand, VecHelper.toVector3d(packetIn
                             .getHitVec()), entity).isCancelled() || SpongeCommonEventFactory.callInteractEntityEventSecondary(this.player,
@@ -858,7 +845,6 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
                     // Sponge start - Call interact event
                     EnumHand hand = EnumHand.MAIN_HAND; // Will be null in the packet during ATTACK
                     ItemStack itemstack = this.player.getHeldItem(hand);
-                    SpongeCommonEventFactory.lastPrimaryPacketTick = this.server.getTickCounter();
 
                     Vector3d hitVec = null;
 
