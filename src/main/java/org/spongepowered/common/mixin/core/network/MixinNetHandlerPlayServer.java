@@ -624,8 +624,7 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
         EnumActionResult actionResult = interactionManager.processRightClick(this.player, worldIn, stack, hand);
         // If a plugin or mod has changed the item, avoid restoring
         if (!SpongeCommonEventFactory.playerInteractItemChanged) {
-            final PhaseTracker phaseTracker = PhaseTracker.getInstance();
-            final PhaseData peek = phaseTracker.getCurrentPhaseData();
+            final PhaseData peek = PhaseTracker.getInstance().getCurrentPhaseData();
             final ItemStack itemStack = ItemStackUtil.toNative(((PacketContext<?>) peek.context).getItemUsed());
 
             // Only do a restore if something actually changed. The client does an identity check ('==')
