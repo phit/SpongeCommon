@@ -117,6 +117,7 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
     @Overwrite
     public void onBlockClicked(BlockPos pos, EnumFacing side) {
 
+        // Sponge start - Fire interact block event
         final BlockSnapshot blockSnapshot = new Location<>((World) this.player.world, VecHelper.toVector3d(pos)).createSnapshot();
         final RayTraceResult result = SpongeImplHooks.rayTraceEyes(this.player, SpongeImplHooks.getBlockReachDistance(this.player));
         final Vector3d vec = result == null ? null : VecHelper.toVector3d(result.hitVec);
@@ -136,6 +137,7 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
             this.player.world.notifyBlockUpdate(pos, this.player.world.getBlockState(pos), state, 3);
             return;
         }
+        // Sponge End
 
         if (this.isCreative()) {
             if (!this.world.extinguishFire((EntityPlayer)null, pos, side)) {
