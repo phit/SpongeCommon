@@ -168,8 +168,6 @@ import javax.annotation.Nullable;
 public class SpongeCommonEventFactory {
 
     public static boolean convertingMapFormat = false;
-    // Set if the player's held item changes during InteractBlockEvent.Secondary
-    public static boolean playerInteractItemChanged = false;
     // Set if any of the events fired during interaction with a block (open
     public static boolean interactBlockLeftClickEventCancelled = false;
     public static boolean interactBlockRightClickEventCancelled = false;
