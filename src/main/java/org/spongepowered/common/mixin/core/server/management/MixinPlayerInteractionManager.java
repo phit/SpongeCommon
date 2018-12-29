@@ -119,8 +119,9 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
      */
     @Overwrite
     public void onBlockClicked(BlockPos pos, EnumFacing side) {
-
         // Sponge start - Fire interact block event
+        // This was an @inject in SpongeVanilla and Forge is also firing its event.
+        // To achieve compatibility and standardize this method, we use an @Overwrite
         final BlockSnapshot blockSnapshot = new Location<>((World) this.player.world, VecHelper.toVector3d(pos)).createSnapshot();
         final RayTraceResult result = SpongeImplHooks.rayTraceEyes(this.player, SpongeImplHooks.getBlockReachDistance(this.player));
         final Vector3d vec = result == null ? null : VecHelper.toVector3d(result.hitVec);
@@ -198,6 +199,7 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
     @Overwrite
     public EnumActionResult processRightClickBlock(EntityPlayer player, net.minecraft.world.World worldIn, ItemStack stack, EnumHand hand, BlockPos
             pos, EnumFacing facing, float hitX, float hitY, float hitZ) {
+        // Overwritten in SpongeForge. Make sure to keep the two methods consistent.
         if (this.gameType == GameType.SPECTATOR) {
             TileEntity tileentity = worldIn.getTileEntity(pos);
 
@@ -359,6 +361,9 @@ public abstract class MixinPlayerInteractionManager implements IMixinPlayerInter
      */
     @Overwrite
     public EnumActionResult processRightClick(EntityPlayer player, net.minecraft.world.World worldIn, ItemStack stack, EnumHand hand) {
+        // Sponge start - Fire interact item event
+        // This is modified by Forge to fire its own event.
+        // To achieve compatibility and standardize this method, we use an @Overwrite
         if (this.gameType == GameType.SPECTATOR) {
             return EnumActionResult.PASS;
         }
