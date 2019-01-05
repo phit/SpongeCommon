@@ -602,10 +602,11 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
     @Redirect(method = "processTryUseItemOnBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/management/PlayerInteractionManager;processRightClickBlock(Lnet/minecraft/entity/player/EntityPlayer;Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;Lnet/minecraft/util/EnumHand;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;FFF)Lnet/minecraft/util/EnumActionResult;"))
     public EnumActionResult onProcessRightClickBlock(PlayerInteractionManager interactionManager, EntityPlayer player, net.minecraft.world.World worldIn, @Nullable ItemStack stack, EnumHand hand, BlockPos pos, EnumFacing facing, float hitX, float hitY, float hitZ) {
         EnumActionResult actionResult = interactionManager.processRightClickBlock(this.player, worldIn, stack, hand, pos, facing, hitX, hitY, hitZ);
+
+        final PhaseData peek = PhaseTracker.getInstance().getCurrentPhaseData();
+
         // If a plugin or mod has changed the item, avoid restoring
-        if (!SpongeCommonEventFactory.playerInteractItemChanged) {
-            final PhaseTracker phaseTracker = PhaseTracker.getInstance();
-            final PhaseData peek = phaseTracker.getCurrentPhaseData();
+        if (!((PacketContext<?>) peek.context).getInteractItemChanged()) {
             final ItemStack itemStack = ItemStackUtil.toNative(((PacketContext<?>) peek.context).getItemUsed());
 
             // Only do a restore if something actually changed. The client does an identity check ('==')
@@ -615,7 +616,29 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
                 PacketPhaseUtil.handlePlayerSlotRestore((EntityPlayerMP) player, itemStack, hand);
             }
         }
-        SpongeCommonEventFactory.playerInteractItemChanged = false;
+        ((PacketContext<?>) peek.context).interactItemChanged(false);
+        SpongeCommonEventFactory.interactBlockRightClickEventCancelled = false;
+        return actionResult;
+    }
+
+    @Redirect(method = "processTryUseItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/management/PlayerInteractionManager;processRightClick(Lnet/minecraft/entity/player/EntityPlayer;Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;Lnet/minecraft/util/EnumHand;)Lnet/minecraft/util/EnumActionResult;"))
+    public EnumActionResult onProcessRightClick(PlayerInteractionManager interactionManager, EntityPlayer player, net.minecraft.world.World worldIn, @Nullable ItemStack stack, EnumHand hand) {
+        EnumActionResult actionResult = interactionManager.processRightClick(this.player, worldIn, stack, hand);
+
+        final PhaseData peek = PhaseTracker.getInstance().getCurrentPhaseData();
+
+        // If a plugin or mod has changed the item, avoid restoring
+        if (!((PacketContext<?>) peek.context).getInteractItemChanged()) {
+            final ItemStack itemStack = ItemStackUtil.toNative(((PacketContext<?>) peek.context).getItemUsed());
+
+            // Only do a restore if something actually changed. The client does an identity check ('==')
+            // to determine if it should continue using an itemstack. If we always resend the itemstack, we end up
+            // cancelling item usage (e.g. eating food) that occurs while targeting a block
+            if (!ItemStack.areItemStacksEqual(itemStack, player.getHeldItem(hand)) && SpongeCommonEventFactory.interactBlockRightClickEventCancelled) {
+                PacketPhaseUtil.handlePlayerSlotRestore((EntityPlayerMP) player, itemStack, hand);
+            }
+        }
+        ((PacketContext<?>) peek.context).interactItemChanged(false);
         SpongeCommonEventFactory.interactBlockRightClickEventCancelled = false;
         return actionResult;
     }
@@ -685,10 +708,7 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
     }
 
     @Inject(method = "handleAnimation", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/EntityPlayerMP;markPlayerActive()V"), cancellable = true)
-    public void onHandleAnimation(CPacketAnimation packetIn, CallbackInfo ci)
-    {
-        SpongeCommonEventFactory.lastAnimationPacketTick = SpongeImpl.getServer().getTickCounter();
-        SpongeCommonEventFactory.lastAnimationPlayer = new WeakReference<>(this.player);
+    public void onHandleAnimation(CPacketAnimation packetIn, CallbackInfo ci) {
         if (ShouldFire.ANIMATE_HAND_EVENT) {
             HandType handType = packetIn.getHand() == EnumHand.MAIN_HAND ? HandTypes.MAIN_HAND : HandTypes.OFF_HAND;
             final ItemStack heldItem = this.player.getHeldItem(packetIn.getHand());
@@ -701,11 +721,6 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
         }
     }
 
-    @Inject(method = "processPlayerDigging", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;getWorld(I)Lnet/minecraft/world/WorldServer;"))
-    public void onProcessPlayerDigging(CPacketPlayerDigging packetIn, CallbackInfo ci) {
-        SpongeCommonEventFactory.lastPrimaryPacketTick = SpongeImpl.getServer().getTickCounter();
-    }
-
     @Inject(method = "processPlayerDigging", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/EntityPlayerMP;dropItem(Z)Lnet/minecraft/entity/item/EntityItem;"))
     public void onProcessPlayerDiggingDropItem(CPacketPlayerDigging packetIn, CallbackInfo ci) {
         final ItemStack stack = this.player.getHeldItemMainhand();
@@ -716,7 +731,6 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
 
     @Inject(method = "processTryUseItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;getWorld(I)Lnet/minecraft/world/WorldServer;"), cancellable = true)
     public void onProcessTryUseItem(CPacketPlayerTryUseItem packetIn, CallbackInfo ci) {
-        SpongeCommonEventFactory.lastSecondaryPacketTick = SpongeImpl.getServer().getTickCounter();
         long packetDiff = System.currentTimeMillis() - SpongeCommonEventFactory.lastTryBlockPacketTimeStamp;
         // If the time between packets is small enough, use the last result.
         if (packetDiff < 100) {
@@ -732,8 +746,6 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
         // InteractItemEvent on block must be handled in PlayerInteractionManager to support item/block results.
         // Only track the timestamps to support our block animation events
         SpongeCommonEventFactory.lastTryBlockPacketTimeStamp = System.currentTimeMillis();
-        SpongeCommonEventFactory.lastSecondaryPacketTick = SpongeImpl.getServer().getTickCounter();
-
     }
 
     /**
@@ -790,9 +802,6 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
                     try (CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
                         EnumHand hand = packetIn.getHand();
                         ItemStack itemstack = hand != null ? this.player.getHeldItem(hand) : ItemStack.EMPTY;
-                        frame.addContext(EventContextKeys.USED_ITEM, ItemStackUtil.snapshotOf(itemstack));
-
-                        SpongeCommonEventFactory.lastSecondaryPacketTick = this.server.getTickCounter();
 
                         // Is interaction allowed with item in hand
                         if (SpongeCommonEventFactory.callInteractItemEventSecondary(this.player, itemstack, hand, VecHelper.toVector3d(packetIn
@@ -838,7 +847,6 @@ public abstract class MixinNetHandlerPlayServer implements PlayerConnection, IMi
                     // Sponge start - Call interact event
                     EnumHand hand = EnumHand.MAIN_HAND; // Will be null in the packet during ATTACK
                     ItemStack itemstack = this.player.getHeldItem(hand);
-                    SpongeCommonEventFactory.lastPrimaryPacketTick = this.server.getTickCounter();
 
                     Vector3d hitVec = null;
 

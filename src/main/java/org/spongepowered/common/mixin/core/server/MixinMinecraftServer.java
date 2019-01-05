@@ -571,40 +571,6 @@ public abstract class MixinMinecraftServer implements Server, ConsoleSource, IMi
 
     @Inject(method = "tick", at = @At(value = "RETURN"))
     public void onServerTickEnd(CallbackInfo ci) {
-        int lastAnimTick = SpongeCommonEventFactory.lastAnimationPacketTick;
-        int lastPrimaryTick = SpongeCommonEventFactory.lastPrimaryPacketTick;
-        int lastSecondaryTick = SpongeCommonEventFactory.lastSecondaryPacketTick;
-        if (SpongeCommonEventFactory.lastAnimationPlayer != null) {
-            EntityPlayerMP player = SpongeCommonEventFactory.lastAnimationPlayer.get();
-            if (player != null && lastAnimTick != lastPrimaryTick && lastAnimTick != lastSecondaryTick && lastAnimTick != 0 && lastAnimTick - lastPrimaryTick > 3 && lastAnimTick - lastSecondaryTick > 3) {
-                BlockSnapshot blockSnapshot = BlockSnapshot.NONE;
-                EnumFacing side = null;
-                final RayTraceResult result = SpongeImplHooks.rayTraceEyes(player, SpongeImplHooks.getBlockReachDistance(player) + 1);
-                // Hit non-air block
-                if (result != null && result.getBlockPos() != null) {
-                    blockSnapshot = new Location<>((World) player.world, VecHelper.toVector3d(result.getBlockPos())).createSnapshot();
-                    side = result.sideHit;
-                }
-
-                Sponge.getCauseStackManager().pushCause(player);
-                if (SpongeCommonEventFactory.callInteractItemEventPrimary(player, player.getHeldItemMainhand(), EnumHand.MAIN_HAND,
-                        result == null ? null : VecHelper.toVector3d(result.hitVec), blockSnapshot).isCancelled()) {
-                    SpongeCommonEventFactory.lastAnimationPacketTick = 0;
-                    Sponge.getCauseStackManager().popCause();
-                    return;
-                }
-
-                if (side != null) {
-                    SpongeCommonEventFactory.callInteractBlockEventPrimary(player, blockSnapshot, EnumHand.MAIN_HAND, side, VecHelper.toVector3d
-                            (result.hitVec));
-                } else {
-                    SpongeCommonEventFactory.callInteractBlockEventPrimary(player, EnumHand.MAIN_HAND, result == null ? null : VecHelper.toVector3d
-                            (result.hitVec));
-                }
-                Sponge.getCauseStackManager().popCause();
-            }
-        }
-        SpongeCommonEventFactory.lastAnimationPacketTick = 0;
         TimingsManager.FULL_SERVER_TICK.stopTiming();
     }
 

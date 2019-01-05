@@ -168,19 +168,13 @@ import javax.annotation.Nullable;
 public class SpongeCommonEventFactory {
 
     public static boolean convertingMapFormat = false;
-    // Set if the player's held item changes during InteractBlockEvent.Secondary
-    public static boolean playerInteractItemChanged = false;
     // Set if any of the events fired during interaction with a block (open
     public static boolean interactBlockLeftClickEventCancelled = false;
     public static boolean interactBlockRightClickEventCancelled = false;
 
-    public static int lastAnimationPacketTick = 0;
     // For animation packet
-    public static int lastSecondaryPacketTick = 0;
-    public static int lastPrimaryPacketTick = 0;
     public static long lastTryBlockPacketTimeStamp = 0;
     public static boolean lastInteractItemOnBlockCancelled = false;
-    public static WeakReference<EntityPlayerMP> lastAnimationPlayer;
 
     public static void callDropItemDispense(List<EntityItem> items, PhaseContext<?> context) {
         try (CauseStackManager.StackFrame frame = Sponge.getCauseStackManager().pushCauseFrame()) {
@@ -732,6 +726,9 @@ public class SpongeCommonEventFactory {
             } else if (hitTarget instanceof BlockSnapshot) {
                 frame.addContext(EventContextKeys.BLOCK_HIT, (BlockSnapshot) hitTarget);
             }
+            if (!stack.isEmpty()) {
+                frame.addContext(EventContextKeys.USED_ITEM, ItemStackUtil.snapshotOf(stack));
+            }
             InteractItemEvent.Primary event;
             if (hand == EnumHand.MAIN_HAND) {
                 event = SpongeEventFactory.createInteractItemEventPrimaryMainHand(frame.getCurrentCause(),
@@ -753,6 +750,9 @@ public class SpongeCommonEventFactory {
             } else if (hitTarget instanceof BlockSnapshot) {
                 frame.addContext(EventContextKeys.BLOCK_HIT, (BlockSnapshot) hitTarget);
             }
+            if (!stack.isEmpty()) {
+                frame.addContext(EventContextKeys.USED_ITEM, ItemStackUtil.snapshotOf(stack));
+            }
             InteractItemEvent.Secondary event;
             if (hand == EnumHand.MAIN_HAND) {
                 event = SpongeEventFactory.createInteractItemEventSecondaryMainHand(frame.getCurrentCause(),
@@ -766,23 +766,22 @@ public class SpongeCommonEventFactory {
         }
     }
 
-    public static InteractBlockEvent.Primary callInteractBlockEventPrimary(EntityPlayer player, EnumHand hand, @Nullable Vector3d hitVec) {
-        InteractBlockEvent.Primary event;
-        if (hand == EnumHand.MAIN_HAND) {
-            event = SpongeEventFactory.createInteractBlockEventPrimaryMainHand(Sponge.getCauseStackManager().getCurrentCause(), HandTypes.MAIN_HAND,
-                    Optional.ofNullable(hitVec), BlockSnapshot.NONE, Direction.NONE);
-        } else {
-            event = SpongeEventFactory.createInteractBlockEventPrimaryOffHand(Sponge.getCauseStackManager().getCurrentCause(), HandTypes.OFF_HAND,
-                    Optional.ofNullable(hitVec), BlockSnapshot.NONE, Direction.NONE);
-        }
-        SpongeImpl.postEvent(event);
-        return event;
+    public static InteractBlockEvent.Primary callInteractBlockEventPrimary(EntityPlayer player, ItemStack heldItem, EnumHand hand, @Nullable Vector3d hitVec) {
+        return callInteractBlockEventPrimary(player, heldItem, BlockSnapshot.NONE, hand, null, hitVec);
     }
 
-    public static InteractBlockEvent.Primary callInteractBlockEventPrimary(EntityPlayer player, BlockSnapshot blockSnapshot, EnumHand hand,
-            EnumFacing side, @Nullable Vector3d hitVec) {
+    public static InteractBlockEvent.Primary callInteractBlockEventPrimary(EntityPlayer player, ItemStack heldItem, BlockSnapshot blockSnapshot, EnumHand hand,
+            @Nullable EnumFacing side, @Nullable Vector3d hitVec) {
         InteractBlockEvent.Primary event;
-        Direction direction = DirectionFacingProvider.getInstance().getKey(side).get();
+        Direction direction;
+        if (side != null) {
+            direction = DirectionFacingProvider.getInstance().getKey(side).get();
+        } else {
+            direction = Direction.NONE;
+        }
+        if (!heldItem.isEmpty()) {
+            Sponge.getCauseStackManager().addContext(EventContextKeys.USED_ITEM, ItemStackUtil.snapshotOf(heldItem));
+        }
         if (hand == EnumHand.MAIN_HAND) {
             event = SpongeEventFactory.createInteractBlockEventPrimaryMainHand(Sponge.getCauseStackManager().getCurrentCause(), HandTypes.MAIN_HAND,
                     Optional.ofNullable(hitVec), blockSnapshot, direction);
